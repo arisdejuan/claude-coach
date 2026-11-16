@@ -20,7 +20,7 @@ import webbrowser
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-PUERTO = 8765
+PUERTO = 8080
 REDIRECT = f"http://localhost:{PUERTO}/callback"
 
 SERVICIOS = {

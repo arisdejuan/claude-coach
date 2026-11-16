@@ -53,10 +53,10 @@ def main():
     nombre = sys.argv[1]
     s = SERVICIOS[nombre]
     pedir("SUPABASE_URL", "URL de Supabase (https://xxxx.supabase.co)")
-    pedir("SUPABASE_SERVICE_KEY", "Clave service_role de Supabase (no se verá al escribir)", True)
+    pedir("SUPABASE_SERVICE_KEY", "Secret key de Supabase, sb_secret_… (no se verá al escribir)", True)
     cid = pedir(f"{nombre.upper()}_CLIENT_ID", f"Client ID de {nombre}")
     csec = pedir(f"{nombre.upper()}_CLIENT_SECRET", f"Client Secret de {nombre} (no se verá)", True)
-    email = input("Tu email de acceso al dashboard: ").strip().lower()
+    email = (os.environ.get("COACH_EMAIL") or input("Tu email de acceso al dashboard: ")).strip().lower()
 
     import comun  # después de tener las variables
     comun.URL = os.environ["SUPABASE_URL"].rstrip("/")

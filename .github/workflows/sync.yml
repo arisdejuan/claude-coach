@@ -1,0 +1,48 @@
+name: Sincronizar Oura y Strava
+
+on:
+  schedule:
+    # Varias veces al día (hora UTC). Si una ejecución falla o GitHub la retrasa,
+    # la siguiente recupera los últimos días: no se pierde nada.
+    - cron: "15 4 * * *"
+    - cron: "45 5 * * *"
+    - cron: "30 7 * * *"
+    - cron: "0 11 * * *"
+    - cron: "0 15 * * *"
+    - cron: "30 19 * * *"
+  workflow_dispatch: {}   # botón "Run workflow" para lanzarlo a mano
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      OURA_CLIENT_ID: ${{ secrets.OURA_CLIENT_ID }}
+      OURA_CLIENT_SECRET: ${{ secrets.OURA_CLIENT_SECRET }}
+      STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+      STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r sync/requirements.txt
+      - name: Oura
+        id: oura
+        continue-on-error: true
+        run: python sync/oura.py
+      - name: Strava
+        id: strava
+        continue-on-error: true
+        run: python sync/strava.py
+      - name: Resultado
+        if: steps.oura.outcome == 'failure' || steps.strava.outcome == 'failure'
+        run: |
+          echo "Alguna sincronización ha fallado (Oura: ${{ steps.oura.outcome }}, Strava: ${{ steps.strava.outcome }})"
+          exit 1

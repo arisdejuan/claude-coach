@@ -1,0 +1,8 @@
+# Datos y notas personales: nunca al repo público
+CLAUDE.md
+privado/
+dashboard/
+.claude/
+.env
+__pycache__/
+.DS_Store

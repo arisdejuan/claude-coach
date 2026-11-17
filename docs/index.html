@@ -686,10 +686,13 @@ function render(){
 }
 function header(){
   const b=bloque();
-  const dias = A.reto&&A.reto.fecha ? Math.ceil((new Date(A.reto.fecha+"T00:00:00")-HOYD)/864e5) : null;
+  // Cuenta atrás solo para el reto más cercano y cuando falten 90 días o menos (A.retos: lista opcional de retos)
+  const proximo = [...(A.retos||[]), ...(A.reto?[A.reto]:[])].filter(x=>x&&x.fecha)
+    .map(x=>({...x, d:Math.ceil((new Date(x.fecha+"T00:00:00")-HOYD)/864e5)})).filter(x=>x.d>=0).sort((a,b)=>a.d-b.d)[0];
+  const dias = proximo && proximo.d<=90 ? proximo.d : null;
   return `<div class="cab-bloque">📍 Bloque <b>${b.nombre}</b> · semana ${b.sem}${b.descarga?" · descarga":""}</div>
     <div class="row between" style="align-items:flex-start"><div style="min-width:0"><h1>Hola${A.nombre?", "+esc(A.nombre):""}</h1><div id="sync" class="sync ${sync.cls}">${sync.txt}</div></div>
-    ${dias!=null?`<div class="cuenta"><b>${dias}</b><span>días para la<br>${esc(A.reto.nombre||A.reto.corto||"tu reto")}</span></div>`:""}</div>`;
+    ${dias!=null?`<div class="cuenta"><b>${dias}</b><span>días para la<br>${esc(proximo.nombre||proximo.corto||"tu reto")}</span></div>`:""}</div>`;
 }
 function vOura(i,f,c){
   const o=OURA[f];

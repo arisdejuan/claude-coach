@@ -1,4 +1,4 @@
-name: Sincronizar Oura y Strava
+name: Sincronizar Oura, Strava y Garmin
 
 on:
   schedule:
@@ -10,7 +10,7 @@ on:
     - cron: "0 11 * * *"
     - cron: "0 15 * * *"
     - cron: "30 19 * * *"
-  workflow_dispatch: {}   # botón "Run workflow" para lanzarlo a mano
+  workflow_dispatch: {}   # botón "Run workflow" y despertador externo (cron-job.org, cada hora)
 
 concurrency:
   group: sync
@@ -27,6 +27,8 @@ jobs:
       OURA_CLIENT_SECRET: ${{ secrets.OURA_CLIENT_SECRET }}
       STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
       STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+      INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+      COACH_EMAIL: ${{ secrets.COACH_EMAIL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -41,8 +43,12 @@ jobs:
         id: strava
         continue-on-error: true
         run: python sync/strava.py
+      - name: Garmin (intervals.icu)
+        id: garmin
+        continue-on-error: true
+        run: python sync/intervals.py
       - name: Resultado
-        if: steps.oura.outcome == 'failure' || steps.strava.outcome == 'failure'
+        if: steps.oura.outcome == 'failure' || steps.strava.outcome == 'failure' || steps.garmin.outcome == 'failure'
         run: |
-          echo "Alguna sincronización ha fallado (Oura: ${{ steps.oura.outcome }}, Strava: ${{ steps.strava.outcome }})"
+          echo "Alguna sincronización ha fallado (Oura: ${{ steps.oura.outcome }}, Strava: ${{ steps.strava.outcome }}, Garmin: ${{ steps.garmin.outcome }})"
           exit 1

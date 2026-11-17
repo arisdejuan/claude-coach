@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Coach">
 <meta name="theme-color" content="#0e1116">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <title>Claude Coach</title>
 <style>
 :root{
@@ -122,6 +124,12 @@ nav button.on{color:var(--accent)}
 .pila.fut{opacity:.28}
 .chart span.hoyc{color:var(--accent);font-weight:700}
 .explica{margin-top:10px;font-size:13.5px}
+.forma .fila{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
+.forma .val{text-align:right;white-space:nowrap} .forma .val b{font-size:22px} .forma .val span{font-size:12px;color:var(--muted)}
+.forma .val.good b{color:var(--green)} .forma .val.mid b{color:var(--amber)} .forma .val.bad b{color:var(--red)}
+.escala{position:relative;height:10px;border-radius:6px;margin-top:8px;background:linear-gradient(90deg,var(--red) 0%,var(--red) 14%,var(--amber) 20%,var(--amber) 46%,var(--green) 54%,var(--accent2) 100%)}
+.escala i{position:absolute;top:-4px;width:4px;height:18px;margin-left:-2px;background:var(--text);border-radius:2px}
+.escala-txt{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:4px}
 .explica summary{color:var(--accent2);cursor:pointer;font-weight:600}
 .explica p{margin:8px 0}
 </style>
@@ -748,24 +756,39 @@ function vMeso(){
   </div>`;
 }
 function vForma(P){
-  const minZ2=Math.round(P.ctl/42*60);
-  const frescura = P.tsb>5?"Estás fresco: buen momento para un test o una carrera."
-    : P.tsb>=-10?"Equilibrado: entrenas y recuperas a la par."
-    : P.tsb>=-30?"Estás cargando: es lo normal en semanas de carga. Si dura más de 2-3 semanas, toca descargar."
-    : "Mucha fatiga acumulada: conviene bajar ya.";
+  if(!P.hayDatos) return `<h2>Estado de forma</h2><div class="card"><p class="muted small" style="margin:0">Aparecerá cuando Strava sincronice tus actividades.</p></div>`;
+  const z2=v=>fmtMin(v/42*60);                       // 1 h de Z2 ≈ 42 puntos
+  const OBJ=75;                                       // forma orientativa para Mallorca 312
+  const est = P.tsb>5?["Fresco","good","Buen momento para un test o una carrera."]
+    : P.tsb>=-10?["Equilibrado","good","Entrenas y recuperas a la par."]
+    : P.tsb>=-30?["Cargando","mid","Normal en semanas de carga. Si dura más de 2-3 semanas, toca descargar."]
+    : ["Demasiada fatiga","bad","Conviene bajar ya."];
+  const pos=Math.max(0,Math.min(100,(P.tsb+40)/60*100));   // escala de −40 a +20
   return `<h2>Estado de forma</h2>
-  <div class="card"><div class="grid4">
-    <div class="stat"><b>${P.hayDatos?P.ctl:"—"}</b><span>Forma</span></div>
-    <div class="stat"><b>${P.hayDatos?P.atl:"—"}</b><span>Fatiga</span></div>
-    <div class="stat ${P.tsb>=-10?"good":P.tsb>=-30?"mid":"bad"}"><b>${P.hayDatos?(P.tsb>0?"+":"")+P.tsb:"—"}</b><span>Frescura</span></div>
-    <div class="stat"><b>${A.ftp}</b><span>FTP W</span></div></div>
-    ${P.hayDatos?`<p class="small" style="margin:10px 0 0">👉 ${frescura}</p>
-    <details class="explica"><summary>¿Qué significan estos números?</summary>
-      <p><b>Forma (${P.ctl})</b>: tu carga media diaria de las <b>últimas 6 semanas</b>. Es tu "motor": sube despacio cuando entrenas con constancia y baja despacio si paras. Tu ${P.ctl} equivale a unos <b>${minZ2}' de rodaje suave (Z2) cada día</b>. Para Mallorca 312, como referencia, interesa llegar a <b>70-80</b>.</p>
-      <p><b>Fatiga (${P.atl})</b>: lo mismo, pero de los <b>últimos 7 días</b>. Sube rápido tras una semana dura y baja rápido al descansar.</p>
-      <p><b>Frescura (${P.tsb>0?"+":""}${P.tsb})</b> = forma − fatiga. Entre −10 y −30: estás construyendo (normal). Por debajo de −30: demasiada carga. Entre 0 y +15: fresco, es donde queremos llegar el día de Mallorca.</p>
-      <p class="muted">Se calcula con tus actividades de Strava (vatios o, si no hay, pulso). 1 hora a tu FTP (a tope) = 100 puntos; 1 hora en Z2 ≈ 40-45.</p>
-    </details>`:`<p class="muted small" style="margin-bottom:0">Aparecerá cuando Strava sincronice tus actividades.</p>`}</div>`;
+  <div class="card forma">
+    <div class="fila"><div><b>💪 Forma física</b><div class="muted small">Media de las últimas 6 semanas</div></div>
+      <div class="val"><b>${P.ctl}</b> <span>puntos/día</span></div></div>
+    <div class="small">≈ <b>${z2(P.ctl)}</b> de rodaje Z2 cada día. Para Mallorca: ~${OBJ}.</div>
+    <div class="bar" style="margin:6px 0 2px"><i style="width:${Math.max(3,Math.min(100,P.ctl/OBJ*100))}%"></i></div>
+    <div class="muted small" style="text-align:right">${P.ctl} de ${OBJ}</div>
+
+    <div class="fila" style="margin-top:14px"><div><b>🥵 Fatiga</b><div class="muted small">Media de los últimos 7 días</div></div>
+      <div class="val"><b>${P.atl}</b> <span>puntos/día</span></div></div>
+    <div class="small">≈ <b>${z2(P.atl)}</b> de rodaje Z2 cada día esta última semana.</div>
+
+    <div class="fila" style="margin-top:14px"><div><b>🔋 Frescura</b><div class="muted small">Forma − fatiga</div></div>
+      <div class="val ${est[1]}"><b>${P.tsb>0?"+":""}${P.tsb}</b> <span>${est[0]}</span></div></div>
+    <div class="escala"><i style="left:${pos}%"></i></div>
+    <div class="escala-txt"><span>Agotado</span><span>Cargando</span><span>Equilibrado</span><span>Fresco</span></div>
+    <div class="small" style="margin-top:6px">👉 ${est[2]}</div>
+
+    <details class="explica"><summary>¿Qué es un "punto"?</summary>
+      <p>Es la carga de entrenamiento (lo que en otras apps se llama TSS). <b>1 hora a tope (a tu FTP de ${A.ftp} W) = 100 puntos</b>; 1 hora de rodaje Z2 ≈ 42 puntos; 1 hora de sweet spot ≈ 80.</p>
+      <p>La <b>forma</b> sube despacio con constancia. La <b>fatiga</b> sube y baja rápido. Cuando la fatiga supera a la forma, la frescura es negativa: estás cargando. Antes de Mallorca bajamos la fatiga para llegar entre 0 y +15.</p>
+      <p class="muted">Se calcula con tus actividades de Strava (vatios o, si no hay, pulso). La fuerza sin pulsómetro cuenta poco.</p>
+    </details>
+    <div class="muted small" style="margin-top:8px">FTP actual: <b>${A.ftp} W</b></div>
+  </div>`;
 }
 function vProgreso(){
   const g=(n,act,obj,ini,u)=>{ if(act==null||obj==null) return ""; const p=Math.max(0,Math.min(100,Math.round((act-ini)/(obj-ini)*100)));

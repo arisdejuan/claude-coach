@@ -77,6 +77,10 @@ label.f{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 .zbar{width:6px;border-radius:4px;flex-shrink:0}
 .step .w{margin-left:auto;text-align:right;white-space:nowrap}
 .step .w b{color:var(--accent);font-size:16px}
+.obj{background:#ff6a3d14;border:1px solid #ff6a3d40;border-radius:12px;padding:9px 12px;margin:10px 0 4px;font-size:13.5px}
+.cmp{border:1px solid #ffffff1a;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:13px}
+.cmp table{width:100%;border-collapse:collapse;margin-top:6px}.cmp td{padding:3px 0;border-top:1px solid #ffffff10}.cmp td+td{text-align:right}
+.cmp .ok{color:var(--green)}.cmp .up{color:var(--amber)}.cmp .down{color:var(--blue)}
 .strava{border-left:3px solid var(--strava);padding:8px 10px;background:#fc4c0212;border-radius:8px;font-size:13px;margin-top:6px}
 .day{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--card);border:1px solid var(--line);margin-bottom:8px}
 .day.today{border-color:var(--accent)}
@@ -216,7 +220,7 @@ const DEF_ORDEN = ["fa","s1","pil","fb","s2","larga","com"];
 function construirSesiones(){
   const pct=(rm,p)=>r25(rm*p), F=A.ftp, w=p=>Math.round(F*p);
   SES = {
-    fa:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza A", sub:"Pierna pesada + tobillo", dur:80, int:"alta",
+    fa:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza A", sub:"Pierna pesada + tobillo", dur:80, int:"alta", obj:"Fuerza máxima de pierna: la sentadilla a RPE 7-8 con técnica limpia y el tobillo/sóleo trabajado sin dolor. Sal con energía, no reventado.",
       calentamiento:["Movilidad de tobillo en pared · 2 × 10 por lado","Cadera 90/90 · 2 × 5 por lado",
         "Puente de glúteo · 2 × 10","Sentadilla goblet con talones elevados y pausa abajo · 2 × 5"],
       ej:[
@@ -228,15 +232,15 @@ function construirSesiones(){
         {n:"Gemelo de pie a una pierna", q:"ten", s:3, r:"8/pierna", kg:"+16", d:"1'", nota:"Sube rápido, baja en 3\"."},
         {n:"Dead bug con carga", q:"core", s:3, r:"8/lado", kg:"10", d:"1'", nota:"Lumbar pegada al suelo. Superserie opcional: rueda abdominal × 8."}
       ]},
-    s1:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: series 1", sub:"Sweet spot", dur:80, int:"alta",
+    s1:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: series 1", sub:"Sweet spot", dur:80, int:"alta", obj:"Subir el FTP: series estables dentro del rango de vatios, cadencia 85-95. Al acabar deberías sentir que podías hacer una más.",
       pasos:[
         {n:"Calentamiento progresivo", reps:1, min:15, lo:w(.57), hi:w(.74), z:2},
         {n:"Sweet spot", reps:3, min:12, lo:w(.9), hi:w(.93), z:3, rec:5, recW:w(.57)},
         {n:"Vuelta a la calma", reps:1, min:10, lo:w(.51), hi:w(.57), z:1}
       ]},
-    pil:{ ico:"🧘", tipo:"activo", titulo:"Pilates", sub:"Descanso activo", dur:50, int:"baja",
+    pil:{ ico:"🧘", tipo:"activo", titulo:"Pilates", sub:"Descanso activo", dur:50, int:"baja", obj:"Recuperar: movilidad de cadera y tobillo y respiración. Salir mejor de lo que entraste.",
       texto:"Clase de pilates. Pon el foco en movilidad de cadera y tobillo y en respirar. Nada de cansarte." },
-    fb:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza B", sub:"Cadena posterior + tren superior", dur:75, int:"media",
+    fb:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza B", sub:"Cadena posterior + tren superior", dur:75, int:"media", obj:"Fuerza de cadena posterior y tren superior: peso muerto y press rápidos (RPE 7), dominadas limpias. Nada de fallo.",
       calentamiento:["Gato-camello · 8","Bisagra de cadera con palo · 10","Face pull con banda · 15",
         "Dominada escapular · 2 × 6","Puente de glúteo · 10"],
       ej:[
@@ -248,29 +252,29 @@ function construirSesiones(){
         {n:"Copenhague (aductores)", q:"core", s:3, r:"25\"/lado", kg:null, d:"1'", nota:"Versión rodilla apoyada si molesta."},
         {n:"Pallof press", q:"core", s:3, r:"10/lado", kg:"15", d:"1'", nota:"Anti-rotación en polea: que no gire el tronco."}
       ]},
-    s2:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: series 2", sub:"Umbral", dur:70, int:"alta",
+    s2:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: series 2", sub:"Umbral", dur:70, int:"alta", obj:"Empujar el umbral: potencia constante en cada serie; la última igual que la primera.",
       pasos:[
         {n:"Calentamiento + 3 aceleraciones", reps:1, min:15, lo:w(.57), hi:w(.77), z:2},
         {n:"Umbral", reps:4, min:6, lo:w(.99), hi:w(1.01), z:4, rec:4, recW:w(.54)},
         {n:"Vuelta a la calma", reps:1, min:12, lo:w(.51), hi:w(.57), z:1}
       ]},
-    z2:{ ico:"🚴", tipo:"bici", titulo:"Rodillo Z2", sub:"Opcional · fondo aeróbico", dur:45, int:"baja", opcional:true,
+    z2:{ ico:"🚴", tipo:"bici", titulo:"Rodillo Z2", sub:"Opcional · fondo aeróbico", dur:45, int:"baja", opcional:true, obj:"Sumar base aeróbica sin fatiga: pulso en Z2 y poder hablar durante todo el rodaje.",
       pasos:[{n:"Rodaje Z2", reps:1, min:45, lo:w(.6), hi:w(.69), z:2}],
       nota:"Opcional: súmala el día que mejor te venga. Si las piernas no van, sáltala sin culpa."},
-    larga:{ ico:"🚴", tipo:"bici", titulo:"Salida larga", sub:"Calle si el tiempo deja · Z2", dur:180, int:"media",
+    larga:{ ico:"🚴", tipo:"bici", titulo:"Salida larga", sub:"Calle si el tiempo deja · Z2", dur:180, int:"media", obj:"Resistencia para Mallorca: horas en Z2 constante y practicar la comida (60-80 g de hidratos por hora).",
       pasos:[
         {n:"Rodaje Z2 constante", reps:1, min:170, lo:w(.6), hi:w(.71), z:2},
         {n:"Últimos 10' suaves", reps:1, min:10, lo:w(.49), hi:w(.57), z:1}
       ], nota:"Come cada 30-40' (60-80 g de hidratos por hora). Cadencia 85-95."}
   };
   COMODIN = {
-    bici:{ ico:"🚴", tipo:"bici", titulo:"Salida media", sub:"Z2 con bloques alegres", dur:120, int:"media",
+    bici:{ ico:"🚴", tipo:"bici", titulo:"Salida media", sub:"Z2 con bloques alegres", dur:120, int:"media", obj:"Base con algo de ritmo: Z2 con bloques de tempo controlados, sin convertirlo en carrera.",
       pasos:[
         {n:"Rodaje Z2", reps:1, min:30, lo:w(.6), hi:w(.71), z:2},
         {n:"Tempo", reps:3, min:10, lo:w(.8), hi:w(.86), z:3, rec:5, recW:w(.6)},
         {n:"Rodaje Z2", reps:1, min:45, lo:w(.57), hi:w(.69), z:2}
       ]},
-    gym:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza C", sub:"Tobillo, core y movilidad (sin cargas pesadas)", dur:45, int:"baja",
+    gym:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza C", sub:"Tobillo, core y movilidad (sin cargas pesadas)", dur:45, int:"baja", obj:"Tobillo, core y movilidad sin cargas: salir más suelto, no más cansado.",
       ej:[
         {n:"Movilidad de tobillo con banda", q:"ten", s:3, r:"10/lado", kg:null, d:"30\"", nota:"Rodilla hacia la punta del pie, sin dolor."},
         {n:"Equilibrio a una pierna sobre cojín", q:"ten", s:3, r:"30\"/lado", kg:null, d:"30\"", nota:"Útil para el esquí."},
@@ -278,7 +282,7 @@ function construirSesiones(){
         {n:"Puente de glúteo a una pierna", q:"hip", s:3, r:"10/pierna", kg:"10", d:"1'", nota:"Pausa arriba 2\"."},
         {n:"Plancha lateral", q:"core", s:3, r:"30\"/lado", kg:null, d:"45\"", nota:""}
       ]},
-    descanso:{ ico:"😴", tipo:"activo", titulo:"Descanso", sub:"Recupera", dur:0, int:"baja",
+    descanso:{ ico:"😴", tipo:"activo", titulo:"Descanso", sub:"Recupera", dur:0, int:"baja", obj:"Recuperar del todo: hoy también se entrena descansando.",
       texto:"Día libre. Si te apetece: paseo o movilidad suave." }
   };
 }
@@ -510,7 +514,7 @@ function ajustar(s, sem, f){
     if(sem.nivel===2){
       t.titulo+=" → Z2 suave"; t.dur=Math.round(Math.min(s.dur,90)*0.6);
       t.pasos=[{n:"Rodaje suave", reps:1, min:t.dur, lo:Math.round(A.ftp*.51), hi:Math.round(A.ftp*.63), z:2}];
-      t.cambios.push("Hoy solo rodaje suave: el cuerpo necesita recuperar");
+      t.cambios.push("Hoy solo rodaje suave: el cuerpo necesita recuperar"); t.obj="Recuperar: rodaje muy suave, solo soltar piernas.";
     } else {
       const series=t.pasos.some(p=>p.rec);
       t.pasos.forEach(p=>{
@@ -647,18 +651,67 @@ function escalas(c){
   return `<div style="margin-top:12px"><label class="f">Piernas (1 = muy cargadas · 5 = frescas)</label>${escala("piernas",c.piernas)}</div>
     <div style="margin-top:10px"><label class="f">Tobillo / rodilla (1 = molestan · 5 = perfectos)</label>${escala("tobillo",c.tobillo)}</div>`;
 }
-function vStrava(f, ses){
-  const acts=actDia(f); if(!acts.length) return "";
-  const plan=cargaPlan(ses);
-  return acts.map(a=>`<div class="strava"><b>Strava:</b> ${esc(a.nombre||a.tipo)} · ${hm(a.duracion_s||0)}
-    ${a.potencia_norm?` · NP ${Math.round(a.potencia_norm)} W`:a.potencia_media?` · ${Math.round(a.potencia_media)} W`:""}
-    ${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""} · carga ${Math.round(a.carga||0)}${plan?` (prevista ${plan})`:""}</div>`).join("");
+/* ---------- previsto vs hecho ---------- */
+// Une cada sesión de bici del día con la actividad de Strava de duración más parecida
+function emparejar(lista, acts){
+  const libres=acts.filter(esBici), out=[];
+  lista.forEach((s,k)=>{ if(s.tipo!=="bici"||!libres.length) return;
+    let best=-1, d=Infinity; libres.forEach((a,j)=>{ const x=Math.abs((a.duracion_s||0)/60-s.dur)/Math.max(s.dur,1); if(x<d){d=x;best=j;} });
+    out[k]=libres.splice(best,1)[0]; });
+  return out;
 }
-function tarjetaSesion(ses,f,r,primeraBici){
+const flecha = (dif,tol) => dif>tol?"up":dif<-tol?"down":"ok";
+function vsBici(s,a){
+  const pMin=s.dur, rMin=(a.duracion_s||0)/60, pC=cargaPlan(s)||0, rC=Math.round(a.carga||0);
+  const pIF=pMin?Math.sqrt(pC/(pMin/60)/100):null, w=a.potencia_norm||a.potencia_media, rIF=w?w/A.ftp:null;
+  const dD=pMin?rMin/pMin-1:0, dI=rIF&&pIF?rIF-pIF:null;
+  const v=[];
+  if(dI!=null){ if(dI>0.04) v.push(`más intensa de lo previsto (${Math.round(rIF*100)} % del FTP frente a ${Math.round(pIF*100)} %)`);
+    else if(dI<-0.04) v.push(`más suave de lo previsto (${Math.round(rIF*100)} % del FTP frente a ${Math.round(pIF*100)} %)`); }
+  if(dD>0.15) v.push(`más larga (+${Math.round(dD*100)} %)`); else if(dD<-0.15) v.push(`más corta (${Math.round(dD*100)} %)`);
+  const zf=A.zonasFC||[], esZ2=s.pasos.every(p=>p.z<=2);
+  if(esZ2 && zf[1] && a.fc_media>zf[1]) v.push(`pulso medio ${Math.round(a.fc_media)} ppm, por encima de tu Z2 (${zf[1]})`);
+  const txt = !v.length ? `<b class="ok">✅ Clavada:</b> duración e intensidad como estaban previstas.`
+    : `<b class="up">⚠️ Diferente al plan:</b> ${v.join(" · ")}.${dI>0.04&&s.int!=="baja"?" Si fue a propósito, perfecto; si no, mañana el semáforo lo tendrá en cuenta.":""}${esZ2&&dI>0.04?" En los días suaves, suave de verdad: la base se construye así.":""}`;
+  const fila=(n,p,r,c)=>`<tr><td>${n}</td><td class="muted">${p}</td><td class="${c||""}">${r}</td></tr>`;
+  return `<div class="cmp"><b>📊 Previsto vs hecho</b> <span class="muted small">· Strava: ${esc(a.nombre||a.tipo)}</span>
+    <table><tr><td></td><td class="muted small">Previsto</td><td class="muted small">Hecho</td></tr>
+    ${fila("Duración", fmtMin(pMin), fmtMin(rMin), flecha(dD,.15))}
+    ${fila("Carga (puntos)", pC, rC||"–", pC?flecha(rC/pC-1,.15):"")}
+    ${pIF?fila("Intensidad media", Math.round(pIF*A.ftp)+" W · "+Math.round(pIF*100)+" %", w?Math.round(w)+" W · "+Math.round(rIF*100)+" %":"–", dI!=null?flecha(dI,.04):""):""}
+    ${a.fc_media?fila("Pulso medio", esZ2&&zf[1]?"≤ "+zf[1]+" ppm":"—", Math.round(a.fc_media)+" ppm"):""}
+    </table><div style="margin-top:6px">${txt}</div></div>`;
+}
+function vsFuerza(s,r){
+  const sets=r.sets||{}, marcadas=Object.values(sets).some(Boolean);
+  if(!marcadas && !r.feedback) return "";
+  let pS=0,hS=0,pT=0,hT=0; const lin=[], rpes=[];
+  s.ej.forEach((e,k)=>{ if(e.off||e.cinta) return;
+    const n = marcadas ? Array.from({length:e.s},(_,j)=>sets[k+"-"+j]).filter(Boolean).length : e.s;
+    pS+=e.s; hS+=n; const reps=repsNum(e.r), kgP=typeof e.kg==="number"?e.kg:null, kgR=num((r.pesos||{})[e.n]) ?? kgP;
+    if(reps&&kgP!=null){ pT+=e.s*reps*kgP; hT+=n*reps*kgR; }
+    const rpe=num((r.rpeEj||{})[e.n]); if(rpe!=null) rpes.push(rpe);
+    if(e.main){ const pr=rpe==null?"":rpe>=9.5?" → la próxima −2,5 kg":rpe<=7.5?" → la próxima +2,5 kg":" → mismo peso la próxima";
+      lin.push(`<tr><td>${e.n}</td><td class="muted">${n}/${e.s} series · ${kgP!=null?fmtKg(kgP)+" kg":e.kg!=null?esc(e.kg)+" kg":"—"}</td><td class="${!n?"down":kgR!=null&&kgP!=null?flecha(kgR-kgP,0):""}">${!n?"No hecho":kgR!=null&&kgP!=null?fmtKg(kgR)+" kg":esc((r.pesos||{})[e.n]||(e.kg!=null?e.kg+" kg":""))}${rpe!=null?` · RPE ${fmtKg(rpe)}`:""}<div class="muted small">${pr}</div></td></tr>`); }
+  });
+  const pct=pS?Math.round(hS/pS*100):0, maxR=rpes.length?Math.max(...rpes):null, medR=rpes.length?rpes.reduce((a,b)=>a+b,0)/rpes.length:null;
+  const v = pct<80 ? `<b class="down">↓ Sesión recortada:</b> ${pct} % de las series. Si fue por cansancio o molestias, cuéntalo en el feedback.`
+    : maxR!=null&&maxR>=9.5 ? `<b class="up">⚠️ Muy exigente:</b> algún ejercicio llegó a RPE ${fmtKg(maxR)}. El objetivo es 7-8: el sistema bajará ese peso.`
+    : medR!=null&&medR<=7 ? `<b class="ok">💪 Te sobró:</b> RPE medio ${fmtKg(Math.round(medR*10)/10)}. Los pesos subirán la próxima vez.`
+    : `<b class="ok">✅ Según el plan:</b> ${pct} % de las series${medR!=null?` a RPE medio ${fmtKg(Math.round(medR*10)/10)}`:""}.`;
+  return `<div class="cmp"><b>📊 Previsto vs hecho</b>
+    <table><tr><td></td><td class="muted small">Previsto</td><td class="muted small">Hecho</td></tr>
+    <tr><td>Series</td><td class="muted">${pS}</td><td class="${flecha(pct/100-1,.1)}">${hS} (${pct} %)</td></tr>
+    ${pT?`<tr><td>Kilos movidos</td><td class="muted">${Math.round(pT).toLocaleString("es-ES")} kg</td><td class="${flecha(hT/pT-1,.1)}">${Math.round(hT).toLocaleString("es-ES")} kg</td></tr>`:""}
+    ${lin.join("")}</table><div style="margin-top:6px">${v}</div>
+    ${!rpes.length?`<p class="muted small" style="margin:6px 0 0">Apunta el RPE de cada ejercicio para que el sistema ajuste mejor los pesos.</p>`:""}</div>`;
+}
+function tarjetaSesion(ses,f,r,primeraBici,act){
   return `<div class="card">
     <div class="row between"><div>${ses.opcional?`<div class="muted small">Opcional</div>`:""}<h3>${ses.ico} ${ses.titulo}</h3><div class="muted small">${ses.sub}</div></div>
     <div style="text-align:right">${ses.dur?`<b>${ses.dur}'</b><br>`:""}<span class="pill ${ses.int}">${ses.int}</span></div></div>
-    ${ses.tipo==="bici"&&primeraBici?vStrava(f, ses):""}
+    ${ses.obj?`<div class="obj">🎯 <b>Objetivo:</b> ${ses.obj}</div>`:""}
+    ${ses.tipo==="bici"&&act?vsBici(ses,act):ses.tipo==="fuerza"?vsFuerza(ses,r):""}
     <div style="margin-top:10px">${ses.tipo==="fuerza"?vFuerza(ses,r):ses.tipo==="bici"?vBici(ses,f,!primeraBici):`<p>${ses.texto}</p>`}</div>
     ${ses.nota?`<p class="muted small">${ses.opcional?"💡":"🍌"} ${ses.nota}</p>`:""}
   </div>`;
@@ -670,7 +723,8 @@ function vHoy(){
   const cls=["verde","ambar","rojo"][sem.nivel];
   const fb=r.feedback, cambios=lista.flatMap(x=>x.cambios||[]);
   const pb=lista.findIndex(x=>x.tipo==="bici");
-  const acts=actDia(f).filter(a=>!esBici(a)||pb<0);
+  const par=emparejar(lista, actDia(f));
+  const acts=actDia(f).filter(a=>!par.includes(a));
   return `${header()}
   ${vOura(i,f,c)}
   <h2>${i===HOY?"Hoy":DIAS[i]} · ${fecha(i).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</h2>
@@ -678,8 +732,8 @@ function vHoy(){
     ${cambios.length?`<div style="margin-top:6px">${cambios.map(x=>"↳ "+x).join("<br>")}</div>`:""}</div>
   ${crudas.some(x=>x.comodin)?`<div class="card"><label class="f">Comodín: ¿qué te apetece?</label>
     <div class="seg">${[["bici","🚴 Bici"],["gym","🏋️ Gimnasio"],["descanso","😴 Descanso"]].map(([k,t])=>`<button data-com="${k}" class="${(semana().comodin||"bici")===k?"on":""}">${t}</button>`).join("")}</div></div>`:""}
-  ${lista.length?lista.map((x,k)=>tarjetaSesion(x,f,r,k===pb)).join(""):tarjetaSesion({...LIBRE},f,r,false)}
-  ${acts.length?`<div class="card">${acts.map(a=>`<div class="strava"><b>Strava:</b> ${esc(a.nombre||a.tipo)} · ${hm(a.duracion_s||0)}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}</div>`).join("")}</div>`:""}
+  ${lista.length?lista.map((x,k)=>tarjetaSesion(x,f,r,k===pb,par[k])).join(""):tarjetaSesion({...LIBRE},f,r,false)}
+  ${acts.length?`<div class="card">${acts.map(a=>`<div class="strava"><b>Strava:</b> ${esc(a.nombre||a.tipo)} · ${hm(a.duracion_s||0)}${a.potencia_norm?` · NP ${Math.round(a.potencia_norm)} W`:""}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}${a.carga?` · carga ${Math.round(a.carga)}`:""}</div>`).join("")}</div>`:""}
   <div class="card"><h3>📝 Feedback del día</h3>
     <div style="margin-top:10px"><label class="f">¿Cómo ha ido?</label>
       <div class="seg">${[["plan","Según plan"],["menos","Menos"],["mas","Más duro"]].map(([k,t])=>`<button data-cu="${k}" class="${(fb&&fb.cumpl||"plan")===k?"on":""}">${t}</button>`).join("")}</div></div>
@@ -711,7 +765,7 @@ function vFuerza(s,r){
         ${typeof e.kg==="number"?`<button data-paso="${k}" data-delta="-2.5">−</button>`:""}
         <input data-peso="${k}" ${typeof e.kg==="number"?'inputmode="decimal"':""} placeholder="${esc(kgTxt)} (vacío = igual)" value="${esc(real||"")}">
         ${typeof e.kg==="number"?`<button data-paso="${k}" data-delta="2.5">+</button>`:""}</div>`:""}
-      ${e.main?`<div class="peso"><label>RPE ejercicio</label><input data-rpeej="${k}" inputmode="decimal" placeholder="1-10 (opcional)" value="${esc((r.rpeEj||{})[e.n]||"")}"></div>`:""}
+      ${!e.cinta&&!e.off?`<div class="peso"><label>RPE</label><input data-rpeej="${k}" inputmode="decimal" placeholder="1-10 · cuántas te quedaban" value="${esc((r.rpeEj||{})[e.n]||"")}"></div>`:""}
     </div>`;
     if(e.cinta && !warmDone){ html+=warm; warmDone=true; }
     return html;
@@ -1019,6 +1073,22 @@ function vInfo(){
       <li><b>Descarga</b>: cada 4.ª semana, −10 % de peso y una serie menos.</li>
       <li><b>Bloques</b>: ${B.map(x=>`${x[0]} (${x[2]})`).join(" → ")}. Cada uno en ciclos de 3 semanas de carga + 1 de descarga.</li>
     </ul></details>
+  <details><summary>🔬 En qué se basa tu plan (y sus fuentes)</summary>
+    <p class="small">Cada pieza lleva al lado cuánta evidencia tiene: <b>🟢 fuerte</b> (meta-análisis o varios ensayos) · <b>🟡 moderada</b> (algunos ensayos) · <b>⚪ práctica</b> (consenso de entrenadores, sin ensayos que la comparen).</p>
+    <ul>
+      <li>🟢 <b>Fuerza pesada para ciclistas</b> (2 días por semana, 4-10 repeticiones pesadas, sin fallo): mejora la economía y la potencia sin subir de peso. <span class="muted">Rønnestad y Mujika, 2014 (Scand J Med Sci Sports); Vikmoen y cols., 2016.</span></li>
+      <li>🟢 <b>Fuerza y resistencia a la vez</b>: la interferencia es pequeña si la fuerza no va al fallo y se separa de las series de bici. <span class="muted">Wilson y cols., 2012 (J Strength Cond Res); Schumann y cols., 2022 (Sports Med).</span></li>
+      <li>🟢 <b>Mucho volumen suave + poca intensidad</b> (~80 % del tiempo en Z1-Z2): es como entrenan los deportistas de fondo. <span class="muted">Seiler, 2010 (Int J Sports Physiol Perform); Stöggl y Sperlich, 2014 (Front Physiol); Rosenblat y cols., 2019 (meta-análisis).</span></li>
+      <li>🟡 <b>Tipo de series</b>: las de VO2 (p. ej. 4 × 8' o 30"/15") tienen más respaldo que el sweet spot para subir el techo aeróbico. <span class="muted">Seiler y cols., 2013 (Scand J Med Sci Sports); Rønnestad y cols., 2015 y 2020 (Scand J Med Sci Sports).</span> ⚪ El sweet spot es una herramienta de entrenadores, eficaz pero con poca investigación directa.</li>
+      <li>🟡 <b>Periodización por bloques</b> (concentrar un tipo de estímulo unas semanas): ventaja pequeña en ciclistas entrenados. <span class="muted">Issurin, 2010 (Sports Med); Rønnestad y cols., 2014.</span> ⚪ El ciclo «3 semanas de carga + 1 de descarga» es práctica habitual, no un dato de estudio.</li>
+      <li>🟢 <b>Afinado antes de Mallorca</b>: 2 semanas, bajar el volumen un 40-60 % y mantener la intensidad. <span class="muted">Bosquet y cols., 2007 (Med Sci Sports Exerc).</span></li>
+      <li>🟢 <b>RPE / repeticiones en reserva</b> para ajustar los pesos al día. <span class="muted">Zourdos y cols., 2016 (J Strength Cond Res); Helms y cols., 2016 (Strength Cond J).</span> ⚪ La regla exacta ±2,5 kg es una forma práctica de aplicarlo.</li>
+      <li>🟡 <b>Ajustar el día según la VFC</b>: entrenar guiado por la VFC iguala o mejora al plan fijo y reduce días malos. <span class="muted">Plews y cols., 2013 (Sports Med); Javaloyes y cols., 2019 (Int J Sports Physiol Perform).</span> ⚪ La puntuación de «recuperación» de Oura es propia de Oura y no está validada como la VFC.</li>
+      <li>🟡 <b>Tendón y tobillo</b>: isometrías y fuerza lenta y pesada para tendones; las isometrías alivian a corto plazo en algunos estudios y no en otros. <span class="muted">Rio y cols., 2015 (Br J Sports Med); Kongsgaard y cols., 2009.</span> ⚪ Volver a correr con poco cartílago: prudencia y fisio; no hay ensayos para tu caso.</li>
+      <li>🟢 <b>Comer en la bici</b>: 60-90 g de hidratos por hora en esfuerzos de más de 2-3 h. <span class="muted">Jeukendrup, 2014 (Sports Med).</span></li>
+      <li>⚪ <b>Puntos de carga, forma y fatiga</b> (modelo de Banister/Coggan): útiles para ver tendencias, pero son estimaciones, no medidas.</li>
+    </ul>
+    <p class="muted small">Esto no sustituye a tu médico ni a tu fisio, sobre todo con el tobillo.</p></details>
   <details><summary>🍌 Comer y beber en salidas largas</summary>
     <ul><li>Más de 2 h: <b>60-90 g de hidratos por hora</b> (gel ≈ 25 g, plátano ≈ 25 g, barrita ≈ 40 g). Empieza en el minuto 30.</li>
       <li>Bebe <b>500-750 ml por hora</b>, con sales si hace calor.</li>

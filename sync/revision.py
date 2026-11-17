@@ -4,6 +4,11 @@ Variables: SUPABASE_URL, SUPABASE_SERVICE_KEY, COACH_EMAIL
 
   python sync/revision.py datos              → imprime en JSON lo necesario para revisar la semana
   python sync/revision.py guardar nota.json  → guarda la nota del coach (y ajustes) para que salga en la web
+  python sync/revision.py contexto           → imprime el contexto del atleta (lesiones, objetivos, preferencias…)
+  python sync/revision.py contexto_guardar archivo.md → reemplaza ese contexto (solo si el atleta lo pide)
+  python sync/revision.py ausencia list
+  python sync/revision.py ausencia add DESDE HASTA TIPO "nota"   (TIPO: gym, nada, vacas, esqui, enfermo)
+  python sync/revision.py ausencia del DESDE
 
 Formato de nota.json:
 {
@@ -24,6 +29,8 @@ import sys
 from comun import actualizar, ahora, comprobar_entorno, guardar, leer, usuario_por_email
 
 IDS = {"fa", "fb", "s1", "s2", "z2", "pil", "larga", "com"}
+TIPOS_AUS = {"gym": "Viaje con gimnasio", "nada": "Viaje sin gimnasio", "vacas": "Vacaciones / descanso",
+             "esqui": "Esquí", "enfermo": "Enfermo"}
 
 
 def lunes(d):
@@ -52,7 +59,9 @@ def datos():
         "lunes_semana_siguiente": (L + dt.timedelta(days=7)).isoformat(),
         "nota": "Semanas: si no hay fila, se usa la semana tipo (fa,s1,pil,fb,s2,larga,com con z2 el día de fa). "
                 "registros: feedback (rpe, cumpl, com), checkin (piernas y tobillo/rodilla de 1 a 5: 1 = molestan/cargadas, 5 = perfectos), pesos reales, rpeEj, sets. "
-                "actividades: carga = TSS estimado.",
+                "actividades: carga = TSS estimado. atleta.perfil.contexto = quién es y sus lesiones/objetivos (léelo SIEMPRE). "
+                "atleta.perfil.ausencias = viajes/vacaciones [{tipo,desde,hasta,nota}]: esos días la web ya adapta las sesiones "
+                "y una semana con 3+ días fuera cuenta como descarga (el ciclo 3+1 se reinicia).",
         "atleta": atleta[0] if atleta else {},
         "semanas": leer("semanas", f"user_id=eq.{uid}&semana=gte.{(L - dt.timedelta(days=21)).isoformat()}&select=semana,datos&order=semana"),
         "registros": leer("registros", f"user_id=eq.{uid}&fecha=gte.{desde}&select=fecha,datos&order=fecha"),
@@ -91,10 +100,62 @@ def guardar_nota(ruta):
         print("Semana", sig, "reorganizada:", dias)
 
 
+def perfil_de(uid):
+    return (leer("atletas", f"user_id=eq.{uid}&select=perfil")[0]["perfil"]) or {}
+
+
+def contexto(args):
+    uid = usuario()
+    p = perfil_de(uid)
+    if args and args[0] == "guardar":
+        texto = open(args[1], encoding="utf-8").read().strip()
+        if len(texto) < 50:
+            raise SystemExit("Contexto demasiado corto")
+        p["contexto"] = texto
+        actualizar("atletas", f"user_id=eq.{uid}", {"perfil": p})
+        print("Contexto guardado (", len(texto), "caracteres )")
+    else:
+        print(p.get("contexto") or "(sin contexto guardado)")
+
+
+def ausencia(args):
+    uid = usuario()
+    p = perfil_de(uid)
+    lista = p.get("ausencias") or []
+    if not args or args[0] == "list":
+        for a in sorted(lista, key=lambda x: x["desde"]):
+            print(f"{a['desde']} → {a['hasta']} · {TIPOS_AUS.get(a['tipo'], a['tipo'])} · {a.get('nota', '')}")
+        if not lista:
+            print("(ninguna)")
+        return
+    if args[0] == "add" and len(args) >= 4:
+        desde, hasta, tipo = args[1], args[2], args[3]
+        dt.date.fromisoformat(desde), dt.date.fromisoformat(hasta)
+        if tipo not in TIPOS_AUS or hasta < desde:
+            raise SystemExit(f"Revisa tipo ({', '.join(TIPOS_AUS)}) y fechas")
+        lista.append({"tipo": tipo, "desde": desde, "hasta": hasta, "nota": " ".join(args[4:])})
+    elif args[0] == "del" and len(args) >= 2:
+        antes = len(lista)
+        lista = [a for a in lista if a["desde"] != args[1]]
+        if len(lista) == antes:
+            raise SystemExit("No hay ninguna ausencia que empiece ese día")
+    else:
+        raise SystemExit(__doc__)
+    p["ausencias"] = lista
+    actualizar("atletas", f"user_id=eq.{uid}", {"perfil": p})
+    print("Ausencias guardadas:", len(lista))
+
+
 if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "datos":
         datos()
     elif len(sys.argv) >= 3 and sys.argv[1] == "guardar":
         guardar_nota(sys.argv[2])
+    elif len(sys.argv) >= 2 and sys.argv[1] == "contexto":
+        contexto([])
+    elif len(sys.argv) >= 3 and sys.argv[1] == "contexto_guardar":
+        contexto(["guardar", sys.argv[2]])
+    elif len(sys.argv) >= 2 and sys.argv[1] == "ausencia":
+        ausencia(sys.argv[2:])
     else:
         print(__doc__)

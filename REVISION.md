@@ -5,7 +5,8 @@ Los datos personales NO están en este repositorio: se leen de Supabase con `syn
 
 ## Pasos
 1. `pip install -r sync/requirements.txt`
-2. `python sync/revision.py datos > /tmp/datos.json` y léelo entero.
+2. `python sync/revision.py datos > /tmp/datos.json` y léelo entero. **Empieza por `atleta.perfil.contexto`**
+   (quién es, lesiones, objetivos, semana tipo) y `atleta.perfil.ausencias` (viajes y vacaciones).
 3. Analiza la semana que termina (lunes → hoy) frente a la anterior:
    - Cumplimiento: sesiones hechas vs. previstas (registros + actividades de Strava).
    - **Comentarios escritos** en `registros[].datos.feedback.com`: dolor, molestias, cansancio, sueño, estrés, sensaciones, cosas que pide el atleta.
@@ -15,6 +16,9 @@ Los datos personales NO están en este repositorio: se leen de Supabase con `syn
 4. Decide la próxima semana con prudencia (semana tipo, ciclos 3 de carga + 1 de descarga):
    - Si hay dolor o molestias articulares: menos impacto, más movilidad, sin cinta; nunca diagnostiques.
    - Si la recuperación baja o duerme poco: quita la Z2 opcional o separa los días duros.
+   - Viajes/vacaciones (`ausencias`): la web ya adapta esos días y mueve la descarga; tenlo en cuenta al valorar
+     el cumplimiento y planifica la vuelta (primer día suave). Si en los comentarios el atleta menciona un viaje
+     que no está marcado, díselo en la nota para que lo marque (no lo añadas tú).
    - Si todo va bien: mantén. No inventes sesiones nuevas: solo puedes **reordenar** las existentes.
    - NO cambies pesos a mano: la web ya aplica la regla de aprendizaje por RPE (≤7,5 → +2,5 kg · 8-9 → igual · ≥9,5 → −2,5 kg).
 5. Escribe `/tmp/nota.json` (formato en la cabecera de `sync/revision.py`):

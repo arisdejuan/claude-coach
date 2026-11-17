@@ -2,7 +2,8 @@
 CLAUDE.md
 privado/
 dashboard/
-.claude/
+.claude/*
+!.claude/CLAUDE.md
 .env
 __pycache__/
 .DS_Store

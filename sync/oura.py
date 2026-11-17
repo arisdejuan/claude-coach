@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from comun import ahora, comprobar_entorno, conexiones, guardar, guardar_conexion, peticion
 
 API = "https://api.ouraring.com"
-DIAS = 10
+DIAS = 75   # 75 días: la web compara tu VFC de 7 días con tus 2 meses anteriores
 
 
 def refrescar(c):

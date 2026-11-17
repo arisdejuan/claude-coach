@@ -27,6 +27,12 @@ def limpio(nombre):
     return re.sub(r"\s+", " ", re.sub(r"[\d%+×]", "", nombre or "")).strip(" ·-") or "Bloque"
 
 
+def dur(m):
+    """Duración en el formato de intervals.icu: 30s, 8m…"""
+    m = float(m)
+    return f"{round(m * 60)}s" if m < 1 else f"{m:g}m"
+
+
 def texto_entreno(pasos, ftp, nota):
     """Formato de texto de intervals.icu: '- Nombre 12m 90-93%' y bloques '3x'."""
     lineas = []
@@ -37,12 +43,12 @@ def texto_entreno(pasos, ftp, nota):
         rango = f"{lo}%" if lo == hi else f"{lo}-{hi}%"
         nombre = limpio(p.get("n"))
         if p.get("reps", 1) > 1:
-            lineas += ["", f"{p['reps']}x", f"- {nombre} {p['min']}m {rango}"]
+            lineas += ["", f"{p['reps']}x", f"- {nombre} {dur(p['min'])} {rango}"]
             if p.get("rec"):
-                lineas.append(f"- Recupera {p['rec']}m {pct(p['recW'], ftp)}%")
+                lineas.append(f"- Recupera {dur(p['rec'])} {pct(p['recW'], ftp)}%")
             lineas.append("")
         else:
-            lineas.append(f"- {nombre} {p['min']}m {rango}")
+            lineas.append(f"- {nombre} {dur(p['min'])} {rango}")
     return "\n".join(lineas).strip() + "\n"
 
 

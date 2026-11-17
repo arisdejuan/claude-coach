@@ -232,11 +232,20 @@ function construirSesiones(){
         {n:"Gemelo de pie a una pierna", q:"ten", s:3, r:"8/pierna", kg:"+16", d:"1'", nota:"Sube rápido, baja en 3\"."},
         {n:"Dead bug con carga", q:"core", s:3, r:"8/lado", kg:"10", d:"1'", nota:"Lumbar pegada al suelo. Superserie opcional: rueda abdominal × 8."}
       ]},
-    s1:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: series 1", sub:"Sweet spot", dur:80, int:"alta", obj:"Subir el FTP: series estables dentro del rango de vatios, cadencia 85-95. Al acabar deberías sentir que podías hacer una más.",
+    // Series 1 = VO2 (alterna cada semana): 30"/15" (Rønnestad 2015/2020) y 4 × 8' (Seiler 2013)
+    s1:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: VO2 cortas", sub:"30\"/15\" · techo aeróbico", dur:60, int:"alta",
+      obj:"Subir tu techo aeróbico (VO2) para que el FTP tenga hacia dónde crecer: los 30\" lo más fuertes que puedas repetir 13 veces, iguales del primero al último.",
       pasos:[
-        {n:"Calentamiento progresivo", reps:1, min:15, lo:w(.57), hi:w(.74), z:2},
-        {n:"Sweet spot", reps:3, min:12, lo:w(.9), hi:w(.93), z:3, rec:5, recW:w(.57)},
-        {n:"Vuelta a la calma", reps:1, min:10, lo:w(.51), hi:w(.57), z:1}
+        {n:"Calentamiento progresivo", reps:1, min:15, lo:w(.55), hi:w(.75), z:2},
+        ...[1,2,3].flatMap(k=>[{n:"Series cortas", reps:13, min:0.5, lo:w(1.12), hi:w(1.2), z:5, rec:0.25, recW:w(.5)}].concat(k<3?[{n:"Recupera", reps:1, min:3, lo:w(.5), hi:w(.55), z:1}]:[])),
+        {n:"Vuelta a la calma", reps:1, min:10, lo:w(.5), hi:w(.57), z:1}
+      ], nota:"Con cambios tan cortos el modo ERG va con retraso: mejor modo nivel/pendiente y guíate por los vatios."},
+    s1b:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: VO2 largas", sub:"4 × 8' · techo aeróbico", dur:63, int:"alta",
+      obj:"Subir tu techo aeróbico (VO2) con series de 8': duro pero sostenible, la cuarta igual que la primera. Es el esfuerzo de un puerto corto a tope.",
+      pasos:[
+        {n:"Calentamiento + 3 aceleraciones", reps:1, min:15, lo:w(.55), hi:w(.77), z:2},
+        {n:"VO2", reps:4, min:8, lo:w(1.03), hi:w(1.08), z:5, rec:2, recW:w(.5)},
+        {n:"Vuelta a la calma", reps:1, min:10, lo:w(.5), hi:w(.57), z:1}
       ]},
     pil:{ ico:"🧘", tipo:"activo", titulo:"Pilates", sub:"Descanso activo", dur:50, int:"baja", obj:"Recuperar: movilidad de cadera y tobillo y respiración. Salir mejor de lo que entraste.",
       texto:"Clase de pilates. Pon el foco en movilidad de cadera y tobillo y en respirar. Nada de cansarte." },
@@ -252,11 +261,34 @@ function construirSesiones(){
         {n:"Copenhague (aductores)", q:"core", s:3, r:"25\"/lado", kg:null, d:"1'", nota:"Versión rodilla apoyada si molesta."},
         {n:"Pallof press", q:"core", s:3, r:"10/lado", kg:"15", d:"1'", nota:"Anti-rotación en polea: que no gire el tronco."}
       ]},
-    s2:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: series 2", sub:"Umbral", dur:70, int:"alta", obj:"Empujar el umbral: potencia constante en cada serie; la última igual que la primera.",
+    // Series 2 = umbral que se alarga durante el ciclo hacia puertos de 15-20'
+    s2:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: umbral", sub:"4 × 6' · semana 1 del ciclo", dur:70, int:"alta",
+      obj:"Empujar el umbral (tu FTP): potencia constante en cada serie; la última igual que la primera.",
       pasos:[
         {n:"Calentamiento + 3 aceleraciones", reps:1, min:15, lo:w(.57), hi:w(.77), z:2},
         {n:"Umbral", reps:4, min:6, lo:w(.99), hi:w(1.01), z:4, rec:4, recW:w(.54)},
         {n:"Vuelta a la calma", reps:1, min:12, lo:w(.51), hi:w(.57), z:1}
+      ]},
+    s2b:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: umbral", sub:"3 × 10' · semana 2 del ciclo", dur:72, int:"alta",
+      obj:"Alargar el umbral: 3 × 10' a ritmo de puerto. Respira y aguanta cadencia (85-95).",
+      pasos:[
+        {n:"Calentamiento + 3 aceleraciones", reps:1, min:15, lo:w(.57), hi:w(.77), z:2},
+        {n:"Umbral", reps:3, min:10, lo:w(.97), hi:w(1), z:4, rec:4, recW:w(.54)},
+        {n:"Vuelta a la calma", reps:1, min:12, lo:w(.51), hi:w(.57), z:1}
+      ]},
+    s2c:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: umbral", sub:"2 × 15' · semana 3 del ciclo", dur:69, int:"alta",
+      obj:"Simular tus puertos de 15-20': 2 × 15' constantes justo por debajo del FTP. Si el segundo sale igual, el FTP está subiendo.",
+      pasos:[
+        {n:"Calentamiento + 3 aceleraciones", reps:1, min:15, lo:w(.57), hi:w(.77), z:2},
+        {n:"Umbral", reps:2, min:15, lo:w(.95), hi:w(.98), z:4, rec:5, recW:w(.54)},
+        {n:"Vuelta a la calma", reps:1, min:12, lo:w(.51), hi:w(.57), z:1}
+      ]},
+    s2d:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: umbral suave", sub:"3 × 6' · semana de descarga", dur:57, int:"media",
+      obj:"Descarga: mantener el gesto de umbral con poco volumen para llegar fresco al siguiente ciclo.",
+      pasos:[
+        {n:"Calentamiento", reps:1, min:15, lo:w(.57), hi:w(.75), z:2},
+        {n:"Umbral", reps:3, min:6, lo:w(.95), hi:w(.98), z:4, rec:4, recW:w(.54)},
+        {n:"Vuelta a la calma", reps:1, min:10, lo:w(.51), hi:w(.57), z:1}
       ]},
     z2:{ ico:"🚴", tipo:"bici", titulo:"Rodillo Z2", sub:"Opcional · fondo aeróbico", dur:45, int:"baja", opcional:true, obj:"Sumar base aeróbica sin fatiga: pulso en Z2 y poder hablar durante todo el rodaje.",
       pasos:[{n:"Rodaje Z2", reps:1, min:45, lo:w(.6), hi:w(.69), z:2}],
@@ -314,8 +346,13 @@ const LIBRE={ico:"😴", tipo:"activo", titulo:"Libre", sub:"Día sin entreno", 
 const semDe = L => EST.semanas[iso(L)]||{orden:[...DEF_ORDEN], comodin:"bici"};
 function segundaDe(sm){ if(sm.segunda) return sm.segunda; const a=Array(7).fill(null), k=(sm.orden||DEF_ORDEN).indexOf("fa"); a[k<0?0:k]="z2"; return a; }
 function diasDe(sm){ if(sm.dias) return sm.dias; const seg=segundaDe(sm); return (sm.orden||DEF_ORDEN).map((id,i)=>[id, seg[i]].filter(Boolean)); }
-function objSes(sm,id){ const c=sm.comodin||"bici"; return id==="com" ? {...COMODIN[c], id:"com-"+c, comodin:true} : SES[id] ? {...SES[id], id} : null; }
-function sesionesFecha(d){ const L=lunesDe(d), i=Math.round((d-L)/864e5), sm=semDe(L); return (diasDe(sm)[i]||[]).map(id=>objSes(sm,id)).filter(Boolean); }
+// Algunas sesiones cambian según la semana del ciclo (s1: alterna VO2 cortas/largas · s2: umbral cada vez más largo)
+function variante(id,L){ if(!L) return id; const b=bloqueDe(L);
+  if(id==="s1") return b.sem%2 ? "s1" : "s1b";
+  if(id==="s2") return b.descarga ? "s2d" : ["s2","s2b","s2c"][(b.sem-1)%4] || "s2";
+  return id; }
+function objSes(sm,id,L){ const c=sm.comodin||"bici"; const v=variante(id,L); return id==="com" ? {...COMODIN[c], id:"com-"+c, comodin:true} : SES[v] ? {...SES[v], id} : null; }
+function sesionesFecha(d){ const L=lunesDe(d), i=Math.round((d-L)/864e5), sm=semDe(L); return (diasDe(sm)[i]||[]).map(id=>objSes(sm,id,L)).filter(Boolean); }
 const principal = l => l.find(s=>!s.opcional) || l[0] || {...LIBRE, id:"libre"};
 function sesionFecha(d){ return principal(sesionesFecha(d)); }
 const pasosPlan = s => s.pasos.map(p=>({n:p.n, reps:p.reps, min:p.min, lo:p.lo, hi:p.hi, z:p.z, rec:p.rec??null, recW:p.recW??null}));
@@ -334,10 +371,10 @@ async function publicarPlan(forzar){
     const sem = enSemana ? semaforo((d.getDay()+6)%7) : {nivel:0, motivos:[], tobillo:false, extra:false};
     const bicis = sesionesFecha(d).map(x=>ajustar(x, sem, f)).filter(x=>x.tipo==="bici");
     const s=bicis[0]||null, bici=!!s, s2=bicis[1]||null, b2=!!s2;
-    const x = {sesion:bici?s.id:null, titulo:bici?s.titulo:null, dur_min:bici?s.dur:null,
+    const x = {sesion:bici?s.id:null, titulo:bici?s.titulo:null, dur_min:bici?Math.round(s.dur):null,
       pasos:bici?pasosPlan(s):null,
       ftp:A.ftp, descripcion:bici&&s.cambios.length?s.cambios.join(" · "):null,
-      extra:b2?{sesion:s2.id, titulo:s2.titulo+(s2.opcional?" (opcional)":""), dur_min:s2.dur, pasos:pasosPlan(s2)}:null};
+      extra:b2?{sesion:s2.id, titulo:s2.titulo+(s2.opcional?" (opcional)":""), dur_min:Math.round(s2.dur), pasos:pasosPlan(s2)}:null};
     const firma=firmaPlan(x), prev=PLAN[f];
     if(!forzar && prev && prev.firma===firma) continue;
     if(!forzar && !prev && !bici && !b2) continue;       // nada que borrar
@@ -403,7 +440,7 @@ async function cargar(){
     sb.from("atletas").select("nombre,perfil").maybeSingle(),
     sb.from("semanas").select("semana,datos").gte("semana", iso(masDias(LUNES,-28))),
     sb.from("registros").select("fecha,datos").gte("fecha", desde),
-    sb.from("oura_diario").select("fecha,readiness,sueno_score,sueno_horas,vfc,fc_reposo,actualizado").gte("fecha", iso(masDias(HOYD,-21))),
+    sb.from("oura_diario").select("fecha,readiness,sueno_score,sueno_horas,vfc,fc_reposo,actualizado").gte("fecha", iso(masDias(HOYD,-75))),
     sb.from("actividades").select("id,fecha,tipo,nombre,duracion_s,distancia_m,potencia_media,potencia_norm,fc_media,carga,raw").gte("fecha", masDias(HOYD,-120).toISOString()).order("fecha"),
     sb.from("planificados").select("*").gte("fecha", iso(HOYD))
   ]);
@@ -456,12 +493,27 @@ function alertaComentario(t){
   const a=ALERTAS.find(x=>x.re.test(t)); if(!a) return null;
   return {...a, tobillo:/tobillo|rodilla|aquiles|gemelo|s[oó]leo/.test(t) && /dolor|duele|molest|inflamad|hinchad/.test(t)};
 }
+// Tendencia de VFC: media de 7 días (log) frente a tus 60 días anteriores. z = cuántas desviaciones por debajo/encima.
+const vfcDias = () => Object.values(OURA).filter(x=>x.vfc>0).length;
+function vfcEstado(D){
+  const ln=k=>{ const o=OURA[iso(masDias(D,-k))]; return o&&o.vfc>0?Math.log(o.vfc):null; };
+  const ult=[0,1,2,3,4,5,6].map(ln).filter(x=>x!=null), ant=[]; for(let k=7;k<67;k++){ const x=ln(k); if(x!=null) ant.push(x); }
+  if(ult.length<4 || ant.length<14) return null;
+  const m=a=>a.reduce((x,y)=>x+y,0)/a.length, mb=m(ant), sd=Math.sqrt(m(ant.map(x=>(x-mb)**2)))||0.05, v=m(ult);
+  return {z:(v-mb)/sd, v7:Math.round(Math.exp(v)), base:Math.round(Math.exp(mb))};
+}
 function semaforo(i){
   const f=iso(fecha(i)), r=REG[f]||{}, c=r.checkin||{}, o=OURA[f];
   const fAyer=iso(masDias(fecha(i),-1)), ayer=(REG[fAyer]||{}).feedback, cuAyer=ayer&&ayer.cumpl;
-  const rd = o&&o.readiness!=null ? o.readiness : num(c.readiness);
-  let nivel = rd==null ? 0 : rd>=80 ? 0 : rd>=65 ? 1 : 2;
-  const motivos=[rd==null ? "Sin dato de Oura todavía" : `Recuperación Oura ${rd}`];
+  const rd = o&&o.readiness!=null ? o.readiness : num(c.readiness), hv=vfcEstado(fecha(i));
+  let nivel, motivos;
+  if(hv){   // VFC: media de 7 días frente a tu normal (Plews 2013, Javaloyes 2019)
+    nivel = hv.z>=-0.5 ? 0 : hv.z>=-1.5 ? 1 : 2;
+    motivos=[`VFC ${hv.v7} ms (media 7 días) · tu normal ${hv.base} ms${nivel?" → por debajo":""}`];
+  } else {
+    nivel = rd==null ? 0 : rd>=80 ? 0 : rd>=65 ? 1 : 2;
+    motivos=[rd==null ? "Sin dato de Oura todavía" : `Recuperación Oura ${rd}${hv===null&&vfcDias()?` (la VFC se usará con 14 días de historial: llevas ${vfcDias()})`:""}`];
+  }
   if(c.piernas && c.piernas<=2){ nivel++; motivos.push("piernas cargadas"); }
   // Ayer: feedback o, si no hay, lo que dice Strava frente a lo previsto
   const plan = i>0 ? sesionesDia(i-1).reduce((t,x)=>t+(cargaPlan(x)||0),0) : 0;
@@ -525,7 +577,7 @@ function ajustar(s, sem, f){
       if(sem.nivel===1 && series) t.cambios.push("Una serie menos y −3 % de vatios");
       if(sem.nivel===1 && !series){ t.pasos[0].min=Math.round(t.pasos[0].min*0.75); t.cambios.push("25 % más corta"); }
       if(sem.extra && series) t.cambios.push("+2 % de vatios en las series");
-      t.dur=t.pasos.reduce((a,p)=>a+p.reps*p.min+(p.rec?(p.reps-1)*p.rec:0),0);
+      t.dur=Math.round(t.pasos.reduce((a,p)=>a+p.reps*p.min+(p.rec?(p.reps-1)*p.rec:0),0));
     }
   }
   return t;
@@ -730,6 +782,7 @@ function vHoy(){
   <h2>${i===HOY?"Hoy":DIAS[i]} · ${fecha(i).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</h2>
   <div class="banner ${cls}"><b>${txt}</b><span class="muted">${sem.motivos.map(esc).join(" · ")}</span>
     ${cambios.length?`<div style="margin-top:6px">${cambios.map(x=>"↳ "+x).join("<br>")}</div>`:""}</div>
+  ${mismoDia(lista)?`<div class="card warn" style="font-size:13.5px">⏱ Hoy tienes fuerza y series de bici: haz una por la mañana y otra por la tarde (mínimo 6 h entre ellas). Así la fuerza resta menos a la bici.</div>`:""}
   ${crudas.some(x=>x.comodin)?`<div class="card"><label class="f">Comodín: ¿qué te apetece?</label>
     <div class="seg">${[["bici","🚴 Bici"],["gym","🏋️ Gimnasio"],["descanso","😴 Descanso"]].map(([k,t])=>`<button data-com="${k}" class="${(semana().comodin||"bici")===k?"on":""}">${t}</button>`).join("")}</div></div>`:""}
   ${lista.length?lista.map((x,k)=>tarjetaSesion(x,f,r,k===pb,par[k])).join(""):tarjetaSesion({...LIBRE},f,r,false)}
@@ -765,22 +818,24 @@ function vFuerza(s,r){
         ${typeof e.kg==="number"?`<button data-paso="${k}" data-delta="-2.5">−</button>`:""}
         <input data-peso="${k}" ${typeof e.kg==="number"?'inputmode="decimal"':""} placeholder="${esc(kgTxt)} (vacío = igual)" value="${esc(real||"")}">
         ${typeof e.kg==="number"?`<button data-paso="${k}" data-delta="2.5">+</button>`:""}</div>`:""}
-      ${!e.cinta&&!e.off?`<div class="peso"><label>RPE</label><input data-rpeej="${k}" inputmode="decimal" placeholder="1-10 · cuántas te quedaban" value="${esc((r.rpeEj||{})[e.n]||"")}"></div>`:""}
+      ${!e.cinta&&!e.off?`<div class="peso"><label>RPE</label><input data-rpeej="${k}" inputmode="decimal" placeholder="1-10" value="${esc((r.rpeEj||{})[e.n]||"")}"></div>`:""}
     </div>`;
     if(e.cinta && !warmDone){ html+=warm; warmDone=true; }
     return html;
   }).join("") + (warmDone?"":warm) + `<p class="muted small">Toca cada serie al terminarla. Deja el peso vacío si hiciste el previsto.</p>`;
 }
+const durTxt = m => m<1 ? Math.round(m*60)+'"' : m+"'";
 function vBici(s,f,sinBoton){
   const pl=PLAN[f], estado = !pl||!pl.firma ? "" : pl.enviado ? `✓ En tu Garmin desde ${new Date(pl.enviado).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} · sincroniza el Edge` : "⏳ Enviando: llega a tu Garmin en 1-2 minutos";
   const fmt=p=>p.lo===p.hi?`${p.lo}`:`${p.lo}-${p.hi}`;
   return s.pasos.map(p=>`<div class="step"><div class="zbar" style="background:${ZCOL[p.z]}"></div>
-    <div><b>${p.reps>1?p.reps+" × "+p.min+"'":p.min+"'"} ${p.n}</b>
-      <div class="muted small">${ZNOM[p.z]}${p.rec?` · recupera ${p.rec}' a ${p.recW} W`:""}</div></div>
+    <div><b>${p.reps>1?p.reps+" × "+durTxt(p.min):durTxt(p.min)} ${p.n}</b>
+      <div class="muted small">${ZNOM[p.z]}${p.rec?` · recupera ${durTxt(p.rec)} a ${p.recW} W`:""}</div></div>
     <div class="w"><b>${fmt(p)}</b><div class="muted small">vatios</div></div></div>`).join("")
     + (sinBoton?"":`<button class="btn ghost" style="margin-top:10px" data-garmin="1">⌚ Enviar a Garmin</button>`)
     + (estado?`<p class="muted small" style="margin:6px 0 0;text-align:center">${estado}</p>`:"");
 }
+const mismoDia = l => l.some(x=>x.tipo==="fuerza"&&x.int!=="baja") && l.some(x=>x.tipo==="bici"&&x.int==="alta");
 function vSemana(){
   const sel=UI.mover, sm=semana(), D=diasDe(sm);
   const cambiada=!!sm.dias || !!sm.segunda || (sm.orden||DEF_ORDEN).join()!==DEF_ORDEN.join();
@@ -795,6 +850,7 @@ function vSemana(){
     const avisos=[];
     if(i>0 && dura(lista) && dura(sesionesDia(i-1))) avisos.push("Dos días duros seguidos: el sistema bajará un poco el segundo");
     if(lista.filter(x=>x.int==="alta").length>1) avisos.push("Dos sesiones duras el mismo día");
+    if(mismoDia(lista)) avisos.push("Fuerza y series de bici el mismo día: sepáralas al menos 6 h");
     return `<div class="dia ${i===HOY?"today":""} ${sel&&sel.i!==i?"target":""}" data-dia="${i}">
       <div class="dia-h"><span><b>${DIAS[i]} ${f.getDate()}</b>${i===HOY?` <span class="hoyb">hoy</span>`:""}</span>
         <span class="small muted">${sel&&sel.i!==i?"👇 poner aquí":lista.length?lista.reduce((t,x)=>t+(x.dur||0),0)+"'":""}</span></div>
@@ -1053,10 +1109,10 @@ function vInfo(){
     <ul>
       <li><b>Base aeróbica (Z1-Z2)</b>: crea mitocondrias y capilares y enseña al cuerpo a quemar grasa. Es lo que te lleva 226 km sin pájara. ~75-80 % del tiempo total.</li>
       <li><b>Tempo (Z3)</b>: ritmo de puerto largo. Útil en bloques específicos; en exceso cansa sin dar mucho.</li>
-      <li><b>Sweet spot (88-94 % FTP)</b>: la mejor relación estímulo/fatiga para subir el FTP. Bloques de 10-20'.</li>
+      <li><b>Sweet spot (88-94 % FTP)</b>: ritmo fuerte sostenible. Útil en salidas, pero con menos respaldo científico que el VO2 o el umbral.</li>
       <li><b>Umbral (95-105 %)</b>: sube directamente tu FTP. Series de 6-15'.</li>
       <li><b>VO2 / anaeróbico</b>: techo aeróbico y cambios de ritmo. Poca dosis y bien recuperado.</li>
-    </ul><p class="muted small">Regla del bloque base: mucho Z2, algo de sweet spot/umbral y casi nada de VO2.</p></details>
+    </ul><p class="muted small">Tu semana: ~80 % suave (Z1-Z2) y dos días de calidad: <b>VO2</b> (alterna 30"/15" y 4 × 8') y <b>umbral</b> que se alarga en el ciclo (4 × 6' → 3 × 10' → 2 × 15', y descarga). Pensado para puertos de 15-20' y para rodar rápido en llano.</p></details>
   <details><summary>🏋️ Qué trabajamos en fuerza</summary>
     <ul>
       <li><b>Fuerza máxima</b> (1-5 reps, 80-90 % del máximo, descansos 2-3'): más fuerza sin ganar peso. Mejora la economía del pedaleo y protege rodilla y espalda. Sentadilla, peso muerto, press, dominadas.</li>
@@ -1068,7 +1124,7 @@ function vInfo(){
     <table class="tz">${[["10","Máximo, no sale otra"],["9","Quedaba 1 rep"],["8","Quedaban 2"],["7","Quedaban 3, velocidad buena"],["5-6","Cómodo, calentamiento"],["1-4","Muy suave"]].map(([a,b])=>`<tr><td>${b}</td><td>${a}</td></tr>`).join("")}</table></details>
   <details><summary>🧠 Cómo decide el sistema</summary>
     <ul>
-      <li><b>Semáforo diario</b>: recuperación de Oura (≥80 verde, 65-79 ámbar, <65 rojo) + piernas + tobillo + cómo fue ayer (tu feedback o Strava). Ámbar: una serie menos y −5 % de peso / −3 % de vatios. Rojo: movilidad o rodaje suave.</li>
+      <li><b>Semáforo diario</b>: tu VFC (media de 7 días frente a tus 2 meses anteriores: normal = verde, algo baja = ámbar, muy baja = rojo; hasta tener 14 días de historial usa la recuperación de Oura) + piernas + tobillo + cómo fue ayer (tu feedback o Strava). Ámbar: una serie menos y −5 % de peso / −3 % de vatios. Rojo: movilidad o rodaje suave.</li>
       <li><b>Pesos que aprenden</b>: RPE ≤7,5 → +2,5 kg la próxima vez · RPE 8-9 → mismo peso · RPE ≥9,5 → −2,5 kg. Manda el RPE del ejercicio sobre el de la sesión.</li>
       <li><b>Descarga</b>: cada 4.ª semana, −10 % de peso y una serie menos.</li>
       <li><b>Bloques</b>: ${B.map(x=>`${x[0]} (${x[2]})`).join(" → ")}. Cada uno en ciclos de 3 semanas de carga + 1 de descarga.</li>
@@ -1079,11 +1135,11 @@ function vInfo(){
       <li>🟢 <b>Fuerza pesada para ciclistas</b> (2 días por semana, 4-10 repeticiones pesadas, sin fallo): mejora la economía y la potencia sin subir de peso. <span class="muted">Rønnestad y Mujika, 2014 (Scand J Med Sci Sports); Vikmoen y cols., 2016.</span></li>
       <li>🟢 <b>Fuerza y resistencia a la vez</b>: la interferencia es pequeña si la fuerza no va al fallo y se separa de las series de bici. <span class="muted">Wilson y cols., 2012 (J Strength Cond Res); Schumann y cols., 2022 (Sports Med).</span></li>
       <li>🟢 <b>Mucho volumen suave + poca intensidad</b> (~80 % del tiempo en Z1-Z2): es como entrenan los deportistas de fondo. <span class="muted">Seiler, 2010 (Int J Sports Physiol Perform); Stöggl y Sperlich, 2014 (Front Physiol); Rosenblat y cols., 2019 (meta-análisis).</span></li>
-      <li>🟡 <b>Tipo de series</b>: las de VO2 (p. ej. 4 × 8' o 30"/15") tienen más respaldo que el sweet spot para subir el techo aeróbico. <span class="muted">Seiler y cols., 2013 (Scand J Med Sci Sports); Rønnestad y cols., 2015 y 2020 (Scand J Med Sci Sports).</span> ⚪ El sweet spot es una herramienta de entrenadores, eficaz pero con poca investigación directa.</li>
+      <li>🟡 <b>Tipo de series</b>: las de VO2 (p. ej. 4 × 8' o 30"/15") tienen más respaldo que el sweet spot para subir el techo aeróbico. <span class="muted">Seiler y cols., 2013 (Scand J Med Sci Sports); Rønnestad y cols., 2015 y 2020 (Scand J Med Sci Sports).</span> ⚪ El sweet spot es una herramienta de entrenadores, eficaz pero con poca investigación directa. <b>Por eso tu series 1 es VO2</b> y la series 2 es umbral (específico para puertos de 15-20').</li>
       <li>🟡 <b>Periodización por bloques</b> (concentrar un tipo de estímulo unas semanas): ventaja pequeña en ciclistas entrenados. <span class="muted">Issurin, 2010 (Sports Med); Rønnestad y cols., 2014.</span> ⚪ El ciclo «3 semanas de carga + 1 de descarga» es práctica habitual, no un dato de estudio.</li>
       <li>🟢 <b>Afinado antes de Mallorca</b>: 2 semanas, bajar el volumen un 40-60 % y mantener la intensidad. <span class="muted">Bosquet y cols., 2007 (Med Sci Sports Exerc).</span></li>
       <li>🟢 <b>RPE / repeticiones en reserva</b> para ajustar los pesos al día. <span class="muted">Zourdos y cols., 2016 (J Strength Cond Res); Helms y cols., 2016 (Strength Cond J).</span> ⚪ La regla exacta ±2,5 kg es una forma práctica de aplicarlo.</li>
-      <li>🟡 <b>Ajustar el día según la VFC</b>: entrenar guiado por la VFC iguala o mejora al plan fijo y reduce días malos. <span class="muted">Plews y cols., 2013 (Sports Med); Javaloyes y cols., 2019 (Int J Sports Physiol Perform).</span> ⚪ La puntuación de «recuperación» de Oura es propia de Oura y no está validada como la VFC.</li>
+      <li>🟡 <b>Ajustar el día según la VFC</b>: entrenar guiado por la VFC iguala o mejora al plan fijo y reduce días malos. <span class="muted">Plews y cols., 2013 (Sports Med); Javaloyes y cols., 2019 (Int J Sports Physiol Perform).</span> ⚪ La puntuación de «recuperación» de Oura no está validada como la VFC: <b>por eso el semáforo usa tu VFC</b>.</li>
       <li>🟡 <b>Tendón y tobillo</b>: isometrías y fuerza lenta y pesada para tendones; las isometrías alivian a corto plazo en algunos estudios y no en otros. <span class="muted">Rio y cols., 2015 (Br J Sports Med); Kongsgaard y cols., 2009.</span> ⚪ Volver a correr con poco cartílago: prudencia y fisio; no hay ensayos para tu caso.</li>
       <li>🟢 <b>Comer en la bici</b>: 60-90 g de hidratos por hora en esfuerzos de más de 2-3 h. <span class="muted">Jeukendrup, 2014 (Sports Med).</span></li>
       <li>⚪ <b>Puntos de carga, forma y fatiga</b> (modelo de Banister/Coggan): útiles para ver tendencias, pero son estimaciones, no medidas.</li>

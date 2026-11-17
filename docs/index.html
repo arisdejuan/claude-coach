@@ -86,9 +86,16 @@ label.f{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 .day .d b{display:block;font-size:18px} .day .d span{font-size:11px;color:var(--muted);text-transform:uppercase}
 .day .body{flex:1;min-width:0}
 .day .ico{font-size:22px}
-.day{flex-wrap:wrap}
-.day .dos{flex-basis:100%;display:flex;gap:12px;align-items:center;padding:8px 0 0 56px;border-top:1px dashed var(--line)}
-.day .dos .ico{font-size:16px}
+.dia{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.dia.today{border-color:var(--accent)}
+.dia.target{border-style:dashed;border-color:var(--accent2);background:#3dd6c60d}
+.dia-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;text-transform:capitalize}
+.hoyb{background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:999px;text-transform:none}
+.ses{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.ses:first-of-type{border-top:0}
+.ses .ico{font-size:20px;width:26px;text-align:center} .ses .body{flex:1;min-width:0}
+.ses.sel{outline:2px solid var(--accent2);border-radius:10px;padding-left:6px}
+.ses.libre{opacity:.6}
 .warn{color:var(--amber);font-size:12.5px;margin-top:3px}
 .bar{height:10px;background:var(--card2);border-radius:6px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:6px}
@@ -296,18 +303,16 @@ function cargaPlan(s){
    La web guarda en "planificados" la bici de hoy y los próximos 7 días, ya ajustada.
    GitHub la manda a intervals.icu cada 30 min, y intervals.icu la pasa a Garmin. */
 const lunesDe = d => masDias(d, -((d.getDay()+6)%7));
-function sesionFecha(d){
-  const L=lunesDe(d), i=Math.round((d-L)/864e5);
-  const s=EST.semanas[iso(L)]||{orden:[...DEF_ORDEN], comodin:"bici"}, id=s.orden[i];
-  return id==="com" ? {...COMODIN[s.comodin], id:"com-"+s.comodin, comodin:true} : {...SES[id], id};
-}
-// Segunda sesión del día (p. ej. rodillo Z2 opcional). Por defecto va el día de la Fuerza A.
-function segundaDe(sm){ if(sm.segunda) return sm.segunda; const a=Array(7).fill(null), k=sm.orden.indexOf("fa"); a[k<0?0:k]="z2"; return a; }
-function segFecha(d){
-  const L=lunesDe(d), i=Math.round((d-L)/864e5);
-  const id=segundaDe(EST.semanas[iso(L)]||{orden:[...DEF_ORDEN], comodin:"bici"})[i];
-  return id&&SES[id] ? {...SES[id], id, segunda:true} : null;
-}
+// Cada semana guarda "dias": 7 listas con los ids de las sesiones de cada día (se pueden mover libremente).
+// Semanas antiguas (orden + segunda) se convierten solas.
+const LIBRE={ico:"😴", tipo:"activo", titulo:"Libre", sub:"Día sin entreno", dur:0, int:"baja", texto:"Día libre. Si te apetece: paseo o movilidad suave."};
+const semDe = L => EST.semanas[iso(L)]||{orden:[...DEF_ORDEN], comodin:"bici"};
+function segundaDe(sm){ if(sm.segunda) return sm.segunda; const a=Array(7).fill(null), k=(sm.orden||DEF_ORDEN).indexOf("fa"); a[k<0?0:k]="z2"; return a; }
+function diasDe(sm){ if(sm.dias) return sm.dias; const seg=segundaDe(sm); return (sm.orden||DEF_ORDEN).map((id,i)=>[id, seg[i]].filter(Boolean)); }
+function objSes(sm,id){ const c=sm.comodin||"bici"; return id==="com" ? {...COMODIN[c], id:"com-"+c, comodin:true} : SES[id] ? {...SES[id], id} : null; }
+function sesionesFecha(d){ const L=lunesDe(d), i=Math.round((d-L)/864e5), sm=semDe(L); return (diasDe(sm)[i]||[]).map(id=>objSes(sm,id)).filter(Boolean); }
+const principal = l => l.find(s=>!s.opcional) || l[0] || {...LIBRE, id:"libre"};
+function sesionFecha(d){ return principal(sesionesFecha(d)); }
 const pasosPlan = s => s.pasos.map(p=>({n:p.n, reps:p.reps, min:p.min, lo:p.lo, hi:p.hi, z:p.z, rec:p.rec??null, recW:p.recW??null}));
 const canon = v => Array.isArray(v) ? "["+v.map(canon).join(",")+"]"
   : v && typeof v==="object" ? "{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+canon(v[k])).join(",")+"}"
@@ -322,8 +327,8 @@ async function publicarPlan(forzar){
     const d=masDias(HOYD,k), f=iso(d);
     const enSemana = d>=LUNES && d<masDias(LUNES,7);
     const sem = enSemana ? semaforo((d.getDay()+6)%7) : {nivel:0, motivos:[], tobillo:false, extra:false};
-    const s = ajustar(sesionFecha(d), sem, f), bici = s.tipo==="bici";
-    const s2r=segFecha(d), s2=s2r?ajustar(s2r, sem, f):null, b2=!!s2&&s2.tipo==="bici";
+    const bicis = sesionesFecha(d).map(x=>ajustar(x, sem, f)).filter(x=>x.tipo==="bici");
+    const s=bicis[0]||null, bici=!!s, s2=bicis[1]||null, b2=!!s2;
     const x = {sesion:bici?s.id:null, titulo:bici?s.titulo:null, dur_min:bici?s.dur:null,
       pasos:bici?pasosPlan(s):null,
       ftp:A.ftp, descripcion:bici&&s.cambios.length?s.cambios.join(" · "):null,
@@ -420,14 +425,12 @@ async function cargar(){
 /* ---------- semana y registros ---------- */
 function semana(){ return EST.semanas[SEMKEY] || { orden:[...DEF_ORDEN], comodin:"bici" }; }
 function setSemana(s){ EST.semanas[SEMKEY]=s; saveSemana(); }
-function sesionDe(i){
-  const s=semana(), id=s.orden[i];
-  return id==="com" ? {...COMODIN[s.comodin], id:"com-"+s.comodin, comodin:true} : {...SES[id], id};
-}
-function sesionSeg(i){ const id=segundaDe(semana())[i]; return id&&SES[id] ? {...SES[id], id, segunda:true} : null; }
+function sesionesDia(i){ return sesionesFecha(fecha(i)); }
+function sesionDe(i){ return principal(sesionesDia(i)); }
+function fuerzaDia(i){ return sesionesDia(i).find(x=>x.tipo==="fuerza") || null; }
 function tocar(i){
   const f=iso(fecha(i)), r=REG[f]||(REG[f]={fecha:f});
-  const ses=ajustar(sesionDe(i), semaforo(i), f);
+  const ses=ajustar(fuerzaDia(i)||sesionDe(i), semaforo(i), f);
   r.ses=ses.id;
   if(ses.ej){ r.plan={}; ses.ej.forEach(e=>{ if(e.kg!=null) r.plan[e.n]=e.kg; }); }
   return r;
@@ -443,7 +446,7 @@ function semaforo(i){
   const motivos=[rd==null ? "Sin dato de Oura todavía" : `Recuperación Oura ${rd}`];
   if(c.piernas && c.piernas<=2){ nivel++; motivos.push("piernas cargadas"); }
   // Ayer: feedback o, si no hay, lo que dice Strava frente a lo previsto
-  const sAyer = i>0 ? sesionDe(i-1) : null, s2Ayer = i>0 ? sesionSeg(i-1) : null, plan=(cargaPlan(sAyer)||0)+(cargaPlan(s2Ayer)||0);
+  const plan = i>0 ? sesionesDia(i-1).reduce((t,x)=>t+(cargaPlan(x)||0),0) : 0;
   const real = actDia(fAyer).reduce((t,a)=>t+(a.carga||0),0);
   const stravaMas = plan && real > plan*1.3 && real-plan>25;
   if(cuAyer==="mas" || (ayer && num(ayer.rpe)>=9) || stravaMas){ nivel++; motivos.push(stravaMas&&cuAyer!=="mas"?`ayer Strava marca más carga de la prevista (${Math.round(real)} vs ${plan})`:"ayer fue más duro de lo previsto"); }
@@ -535,19 +538,18 @@ function semanaVol(L){
   for(let d=0;d<7;d++){
     const D=masDias(L,d), f=iso(D);
     const sem = estaSemana ? semaforo(d) : {nivel:0, motivos:[], tobillo:false, extra:false};
-    const s = conPlan ? ajustar(sesionFecha(D), sem, f) : null;
-    const s2r = conPlan ? segFecha(D) : null, s2 = s2r ? ajustar(s2r, sem, f) : null;
+    const lista = conPlan ? sesionesFecha(D).map(x=>ajustar(x, sem, f)) : [];
+    const bicis = lista.filter(x=>x.tipo==="bici"), s = lista.find(x=>x.tipo==="fuerza") || null;
     const r = REG[f]||{};
-    // --- bici programada ---
-    if(s && s.tipo==="bici"){ const m=minBici(s); V.plan.min+=s.dur; V.plan.carga+=cargaPlan(s)||0; Object.entries(m).forEach(([k,v])=>sumar(V.plan.cb,k,v)); }
-    if(s2 && s2.tipo==="bici"){ if(s2.opcional) V.extra+=s2.dur;
-      else { V.plan.min+=s2.dur; V.plan.carga+=cargaPlan(s2)||0; Object.entries(minBici(s2)).forEach(([k,v])=>sumar(V.plan.cb,k,v)); } }
+    // --- bici programada (la opcional va aparte) ---
+    bicis.forEach(b=>{ if(b.opcional){ V.extra+=b.dur; return; }
+      V.plan.min+=b.dur; V.plan.carga+=cargaPlan(b)||0; Object.entries(minBici(b)).forEach(([k,v])=>sumar(V.plan.cb,k,v)); });
     // --- bici hecha (Strava) ---
     actDia(f).filter(esBici).forEach(a=>{
       const min=(a.duracion_s||0)/60; V.hecho.min+=min; V.hecho.carga+=a.carga||0;
       const w=a.potencia_norm||a.potencia_media, IF=w?w/A.ftp:null;
       let dist=null;
-      if(IF) for(const c of [s,s2]){ if(!c||c.tipo!=="bici"||min<c.dur*0.5||min>c.dur*1.6) continue;
+      if(IF) for(const c of bicis){ if(min<c.dur*0.5||min>c.dur*1.6) continue;
         const pIF=Math.sqrt((cargaPlan(c)||0)/(c.dur/60)/100); if(Math.abs(IF-pIF)<=0.12){ dist=minBici(c); break; } }
       if(dist){ const tot=Object.values(dist).reduce((x,y)=>x+y,0)||1; Object.entries(dist).forEach(([k,v])=>sumar(V.hecho.cb,k,v/tot*min)); }
       else { V.estimado=true;
@@ -555,7 +557,7 @@ function semanaVol(L){
         sumar(V.hecho.cb,c,min); }
     });
     // --- fuerza ---
-    if(s && s.tipo==="fuerza"){
+    if(s){
       V.plan.ses++;
       const sets=r.sets||{}, marcadas=Object.values(sets).some(Boolean), hecha=marcadas||!!r.feedback;
       if(hecha) V.hecho.ses++;
@@ -635,35 +637,36 @@ function vStrava(f, ses){
     ${a.potencia_norm?` · NP ${Math.round(a.potencia_norm)} W`:a.potencia_media?` · ${Math.round(a.potencia_media)} W`:""}
     ${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""} · carga ${Math.round(a.carga||0)}${plan?` (prevista ${plan})`:""}</div>`).join("");
 }
+function tarjetaSesion(ses,f,r,primeraBici){
+  return `<div class="card">
+    <div class="row between"><div>${ses.opcional?`<div class="muted small">Opcional</div>`:""}<h3>${ses.ico} ${ses.titulo}</h3><div class="muted small">${ses.sub}</div></div>
+    <div style="text-align:right">${ses.dur?`<b>${ses.dur}'</b><br>`:""}<span class="pill ${ses.int}">${ses.int}</span></div></div>
+    ${ses.tipo==="bici"&&primeraBici?vStrava(f, ses):""}
+    <div style="margin-top:10px">${ses.tipo==="fuerza"?vFuerza(ses,r):ses.tipo==="bici"?vBici(ses,f,!primeraBici):`<p>${ses.texto}</p>`}</div>
+    ${ses.nota?`<p class="muted small">${ses.opcional?"💡":"🍌"} ${ses.nota}</p>`:""}
+  </div>`;
+}
 function vHoy(){
   const i=UI.dia, f=iso(fecha(i)), r=REG[f]||{}, c=r.checkin||{};
-  const base=sesionDe(i), sem=semaforo(i), ses=ajustar(base, sem, f);
-  const segB=sesionSeg(i), seg=segB?ajustar(segB, sem, f):null;
+  const sem=semaforo(i), crudas=sesionesDia(i), lista=crudas.map(x=>ajustar(x, sem, f));
   const txt=["Verde: entrena como está previsto","Ámbar: hoy bajamos un poco","Rojo: hoy toca recuperar"][sem.nivel];
   const cls=["verde","ambar","rojo"][sem.nivel];
-  const fb=r.feedback;
+  const fb=r.feedback, cambios=lista.flatMap(x=>x.cambios||[]);
+  const pb=lista.findIndex(x=>x.tipo==="bici");
+  const acts=actDia(f).filter(a=>!esBici(a)||pb<0);
   return `${header()}
   ${vOura(i,f,c)}
   <h2>${i===HOY?"Hoy":DIAS[i]} · ${fecha(i).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</h2>
   <div class="banner ${cls}"><b>${txt}</b><span class="muted">${sem.motivos.map(esc).join(" · ")}</span>
-    ${ses.cambios.length?`<div style="margin-top:6px">${ses.cambios.map(x=>"↳ "+x).join("<br>")}</div>`:""}</div>
-  ${base.comodin?`<div class="card"><label class="f">Domingo comodín: ¿qué te apetece?</label>
-    <div class="seg">${[["bici","🚴 Bici"],["gym","🏋️ Gimnasio"],["descanso","😴 Descanso"]].map(([k,t])=>`<button data-com="${k}" class="${semana().comodin===k?"on":""}">${t}</button>`).join("")}</div></div>`:""}
-  <div class="card">
-    <div class="row between"><div><h3>${ses.ico} ${ses.titulo}</h3><div class="muted small">${ses.sub}</div></div>
-    <div style="text-align:right">${ses.dur?`<b>${ses.dur}'</b><br>`:""}<span class="pill ${ses.int}">${ses.int}</span></div></div>
-    ${vStrava(f, ses)}
-    <div style="margin-top:10px">${ses.tipo==="fuerza"?vFuerza(ses,r):ses.tipo==="bici"?vBici(ses,f):`<p>${ses.texto}</p>`}</div>
-    ${ses.nota?`<p class="muted small">🍌 ${ses.nota}</p>`:""}
-  </div>
-  ${seg?`<div class="card"><div class="row between"><div><div class="muted small">➕ Segunda sesión${seg.opcional?" · opcional":""}</div><h3>${seg.ico} ${seg.titulo}</h3><div class="muted small">${seg.sub}</div></div>
-    <div style="text-align:right"><b>${seg.dur}'</b><br><span class="pill ${seg.int}">${seg.int}</span></div></div>
-    <div style="margin-top:10px">${seg.tipo==="bici"?vBici(seg,f,ses.tipo==="bici"):""}</div>
-    ${seg.nota?`<p class="muted small">💡 ${seg.nota}</p>`:""}</div>`:""}
-  <div class="card"><h3>📝 Feedback del entreno</h3>
+    ${cambios.length?`<div style="margin-top:6px">${cambios.map(x=>"↳ "+x).join("<br>")}</div>`:""}</div>
+  ${crudas.some(x=>x.comodin)?`<div class="card"><label class="f">Comodín: ¿qué te apetece?</label>
+    <div class="seg">${[["bici","🚴 Bici"],["gym","🏋️ Gimnasio"],["descanso","😴 Descanso"]].map(([k,t])=>`<button data-com="${k}" class="${(semana().comodin||"bici")===k?"on":""}">${t}</button>`).join("")}</div></div>`:""}
+  ${lista.length?lista.map((x,k)=>tarjetaSesion(x,f,r,k===pb)).join(""):tarjetaSesion({...LIBRE},f,r,false)}
+  ${acts.length?`<div class="card">${acts.map(a=>`<div class="strava"><b>Strava:</b> ${esc(a.nombre||a.tipo)} · ${hm(a.duracion_s||0)}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}</div>`).join("")}</div>`:""}
+  <div class="card"><h3>📝 Feedback del día</h3>
     <div style="margin-top:10px"><label class="f">¿Cómo ha ido?</label>
       <div class="seg">${[["plan","Según plan"],["menos","Menos"],["mas","Más duro"]].map(([k,t])=>`<button data-cu="${k}" class="${(fb&&fb.cumpl||"plan")===k?"on":""}">${t}</button>`).join("")}</div></div>
-    <div style="margin-top:10px"><label class="f">RPE de la sesión (1-10)</label>
+    <div style="margin-top:10px"><label class="f">RPE del día (1-10)</label>
       <input id="rpe" inputmode="decimal" value="${esc(fb?fb.rpe:"")}" placeholder="p. ej. 7,5"></div>
     <div style="margin-top:10px"><label class="f">Comentarios</label>
       <textarea id="com" placeholder="Sensaciones, molestias, lo que quieras…">${esc(fb?fb.com:"")}</textarea></div>
@@ -698,7 +701,7 @@ function vFuerza(s,r){
   }).join("") + (warmDone?"":warm) + `<p class="muted small">Toca cada serie al terminarla. Deja el peso vacío si hiciste el previsto.</p>`;
 }
 function vBici(s,f,sinBoton){
-  const pl=PLAN[f], estado = !pl||!pl.firma ? "" : pl.enviado ? `✓ En tu Garmin desde ${new Date(pl.enviado).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} · sincroniza el Edge` : "⏳ Preparado: llega a Garmin en menos de 30 min";
+  const pl=PLAN[f], estado = !pl||!pl.firma ? "" : pl.enviado ? `✓ En tu Garmin desde ${new Date(pl.enviado).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} · sincroniza el Edge` : "⏳ Enviando: llega a tu Garmin en 1-2 minutos";
   const fmt=p=>p.lo===p.hi?`${p.lo}`:`${p.lo}-${p.hi}`;
   return s.pasos.map(p=>`<div class="step"><div class="zbar" style="background:${ZCOL[p.z]}"></div>
     <div><b>${p.reps>1?p.reps+" × "+p.min+"'":p.min+"'"} ${p.n}</b>
@@ -708,30 +711,31 @@ function vBici(s,f,sinBoton){
     + (estado?`<p class="muted small" style="margin:6px 0 0;text-align:center">${estado}</p>`:"");
 }
 function vSemana(){
-  const sel=UI.mover, sm=semana(), seg=segundaDe(sm);
-  const cambiada=sm.orden.join()!==DEF_ORDEN.join() || !!sm.segunda;
-  const selS = sel ? (sel.k==="p"?sesionDe(sel.i):sesionSeg(sel.i)) : null;
+  const sel=UI.mover, sm=semana(), D=diasDe(sm);
+  const cambiada=!!sm.dias || !!sm.segunda || (sm.orden||DEF_ORDEN).join()!==DEF_ORDEN.join();
+  const selS = sel ? sesionesDia(sel.i)[sel.j] : null;
+  const dura = l => l.some(x=>x.int==="alta");
   return `${header()}<h2>Tu semana</h2>
   <div class="howto">${!sel
-    ? "↕️ <b>Para cambiar entrenos de día:</b> toca <b>Mover</b> en el entreno y luego el día al que lo quieres llevar. Se intercambian. La segunda sesión (➕) se mueve sola, sin tocar la principal.<br>👉 Toca cualquier día para ver su sesión."
-    : `Ahora toca el día al que quieres llevar <b>${selS?selS.titulo:""}</b> (o ✕ para cancelar).`}</div>
-  ${sm.orden.map((id,i)=>{
-    const s=sesionDe(i), s2=sesionSeg(i), f=fecha(i), prev=i>0?sesionDe(i-1):null;
-    const movido=sm.orden[i]!==DEF_ORDEN[i] || (i>0 && sm.orden[i-1]!==DEF_ORDEN[i-1]);
-    const aviso=movido && prev && prev.int==="alta" && s.int==="alta" ? `<div class="warn">⚠️ Dos días duros seguidos: el sistema bajará un poco el segundo</div>`:"";
-    const fb=(REG[iso(f)]||{}).feedback, acts=actDia(iso(f));
-    const esSel=k=>sel&&sel.k===k&&sel.i===i;
-    return `<div class="day ${i===HOY?"today":""} ${esSel("p")||esSel("s")?"sel":""} ${sel&&sel.i!==i?"target":""}" data-dia="${i}">
-      <div class="d"><span>${DIAS[i]}</span><b>${f.getDate()}</b></div>
-      <div class="ico">${s.ico}</div>
-      <div class="body"><b>${s.titulo}</b><div class="muted small">${s.sub}${s.dur?` · ${s.dur}'`:""}</div>${aviso}
-        ${fb?`<div class="small" style="color:var(--green)">✓ Hecho · RPE ${esc(fb.rpe||"–")}</div>`:""}
-        ${acts.map(a=>`<div class="small" style="color:var(--strava)">● ${hm(a.duracion_s||0)}${a.potencia_norm?` · ${Math.round(a.potencia_norm)} W`:""}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}</div>`).join("")}</div>
-      <button class="btn ghost small" data-mover="${i}">${esSel("p")?"✕":"↕ Mover"}</button>
-      ${s2?`<div class="dos"><span class="ico">➕</span><div class="body"><b>${s2.titulo}</b><div class="muted small">${s2.sub} · ${s2.dur}'</div></div>
-        <button class="btn ghost small" data-mover2="${i}">${esSel("s")?"✕":"↕ Mover"}</button></div>`:""}
+    ? "↕️ <b>Para mover un entreno:</b> toca <b>Mover</b> y luego el día donde lo quieres. Un día puede tener varias sesiones o ninguna.<br>👉 Toca un día para ver sus sesiones."
+    : `Toca el día donde quieres poner <b>${selS?selS.titulo:""}</b> (o ✕ para cancelar).`}</div>
+  ${D.map((ids,i)=>{
+    const lista=sesionesDia(i), f=fecha(i), fs=iso(f), fb=(REG[fs]||{}).feedback, acts=actDia(fs);
+    const avisos=[];
+    if(i>0 && dura(lista) && dura(sesionesDia(i-1))) avisos.push("Dos días duros seguidos: el sistema bajará un poco el segundo");
+    if(lista.filter(x=>x.int==="alta").length>1) avisos.push("Dos sesiones duras el mismo día");
+    return `<div class="dia ${i===HOY?"today":""} ${sel&&sel.i!==i?"target":""}" data-dia="${i}">
+      <div class="dia-h"><span><b>${DIAS[i]} ${f.getDate()}</b>${i===HOY?` <span class="hoyb">hoy</span>`:""}</span>
+        <span class="small muted">${sel&&sel.i!==i?"👇 poner aquí":lista.length?lista.reduce((t,x)=>t+(x.dur||0),0)+"'":""}</span></div>
+      ${lista.length?lista.map((x,j)=>`<div class="ses ${sel&&sel.i===i&&sel.j===j?"sel":""}">
+        <span class="ico">${x.ico}</span><div class="body"><b>${x.titulo}</b><div class="muted small">${x.sub}${x.dur?` · ${x.dur}'`:""}</div></div>
+        <button class="btn ghost small" data-mv="${i}-${j}">${sel&&sel.i===i&&sel.j===j?"✕":"↕ Mover"}</button></div>`).join("")
+        :`<div class="ses libre"><span class="ico">😴</span><div class="body muted">Libre</div></div>`}
+      ${avisos.map(a=>`<div class="warn">⚠️ ${a}</div>`).join("")}
+      ${fb?`<div class="small" style="color:var(--green)">✓ Hecho · RPE ${esc(fb.rpe||"–")}</div>`:""}
+      ${acts.map(a=>`<div class="small" style="color:var(--strava)">● ${hm(a.duracion_s||0)}${a.potencia_norm?` · ${Math.round(a.potencia_norm)} W`:""}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}</div>`).join("")}
     </div>`; }).join("")}
-  ${cambiada?`<button class="btn ghost" data-resetsem="1">Volver al orden original</button>`:""}
+  ${cambiada?`<button class="btn ghost" data-resetsem="1">Volver a la semana tipo</button>`:""}
   ${vVolumen(semanaVol(LUNES))}
   <div class="card" style="margin-top:14px"><h3>🎯 Objetivo de la semana</h3>
     <p class="muted" style="margin:6px 0 0">${esc(A.objetivoSemana||"Completar las sesiones clave sin pasar de RPE 8 y apuntar el feedback de cada una.")}</p></div>`;
@@ -836,14 +840,14 @@ function vProgreso(){
   const fp=Object.keys(REG).filter(d=>num(REG[d].pesoCorporal)!=null).sort();
   const pesoAct=fp.length ? num(REG[fp[fp.length-1]].pesoCorporal) : A.peso;
   let plan=0, hechas=0;
-  for(let i=0;i<7;i++){ const s=sesionDe(i); if(s.titulo==="Descanso") continue; plan++; const f=iso(fecha(i)); if((REG[f]||{}).feedback || actDia(f).length) hechas++; }
+  for(let i=0;i<7;i++){ const l=sesionesDia(i).filter(x=>!x.opcional&&x.titulo!=="Descanso"); if(!l.length) continue; plan++; const f=iso(fecha(i)); if((REG[f]||{}).feedback || actDia(f).length) hechas++; }
   const P=pmc(), b=bloque();
   // carga semanal: prevista (bici) vs hecha (Strava), últimas 4 semanas
   const semanas=[];
   for(let k=3;k>=0;k--){
     const L=masDias(LUNES,-7*k); let hecha=0;
     for(let d=0;d<7;d++) hecha+=P.carga[iso(masDias(L,d))]||0;
-    let prev=0; for(let d=0;d<7;d++){ const id=(EST.semanas[iso(L)]||{orden:DEF_ORDEN}).orden[d]; const s=id==="com"?COMODIN.bici:SES[id]; prev+=cargaPlan(s)||(s&&s.tipo==="fuerza"?45:0); }
+    let prev=0; for(let d=0;d<7;d++) sesionesFecha(masDias(L,d)).forEach(s=>{ if(!s.opcional) prev+=cargaPlan(s)||(s.tipo==="fuerza"?45:0); });
     semanas.push([k===0?"Esta":"S-"+k, prev, Math.round(hecha)]);
   }
   const mx=Math.max(1,...semanas.flatMap(s=>[s[1],s[2]]));
@@ -886,11 +890,12 @@ function informe(){
   const V = semanaVol(L);
   // sesiones
   let plan=0, hechas=0, opc=0, opcH=0; const rpes=[], coms=[];
-  dias.forEach(D=>{ const f=iso(D), s=sesionFecha(D), s2=segFecha(D), r=REG[f]||{}, bicis=actDia(f).filter(esBici).length;
-    if(s && s.titulo!=="Descanso"){ plan++;
-      const hecho = r.feedback || (s.tipo==="bici" ? bicis>0 : Object.values(r.sets||{}).some(Boolean));
-      if(hecho) hechas++; }
-    if(s2){ if(s2.opcional){ opc++; if(bicis > (s&&s.tipo==="bici"?1:0)) opcH++; } }
+  dias.forEach(D=>{ const f=iso(D), l=sesionesFecha(D), r=REG[f]||{}, bicis=actDia(f).filter(esBici).length;
+    const obl=l.filter(x=>!x.opcional&&x.titulo!=="Descanso"), op=l.filter(x=>x.opcional);
+    obl.forEach(s=>{ plan++;
+      const hecho = s.tipo==="bici" ? bicis>0 : s.tipo==="fuerza" ? (r.feedback || Object.values(r.sets||{}).some(Boolean)) : !!r.feedback;
+      if(hecho) hechas++; });
+    op.forEach(()=>{ opc++; if(bicis > obl.filter(x=>x.tipo==="bici").length) opcH++; });
     const fb=r.feedback; if(fb){ if(num(fb.rpe)!=null) rpes.push(num(fb.rpe)); if(fb.com) coms.push([D,fb.com]); } });
   // Oura
   const ou = ds => { const o=ds.map(D=>OURA[iso(D)]).filter(Boolean); return {rd:media(o.map(x=>x.readiness)), su:media(o.map(x=>x.sueno_horas)), hrv:media(o.map(x=>x.vfc)), fc:media(o.map(x=>x.fc_reposo)), n:o.length}; };
@@ -995,7 +1000,10 @@ function vInfo(){
       <li>Bebe <b>500-750 ml por hora</b>, con sales si hace calor.</li>
       <li>Entrena el estómago en las salidas largas: lo que pruebes es lo que usarás en Mallorca. Ajústalo con tu nutricionista.</li></ul></details>
   <details><summary>⌚ Cómo llegan los entrenos al Garmin</summary>
-    <p>La web prepara la bici de hoy y de los próximos 7 días ya ajustada. Cada hora se envía a intervals.icu, que la pasa a Garmin Connect. Sincroniza el Edge y la tendrás en <b>Entrenamiento → Entrenamientos</b>. Si mueves una sesión, el cambio llega solo.</p></details>
+    <ul><li><b>Qué se envía</b>: la bici de hoy y de los próximos 7 días, ya ajustada por el semáforo (incluida la Z2 opcional como segundo entreno del día).</li>
+      <li><b>Cuándo</b>: cada vez que abres la web o cambias algo (mover una sesión, tu check-in…), el cambio se manda <b>al momento</b> y está en Garmin Connect en 1-2 minutos. Además, cada hora (de 5 a 23 h) se repasa todo por si algo falló.</li>
+      <li><b>En el Edge</b>: sincroniza con la app de Garmin Connect y lo tienes en <b>Entrenamiento → Entrenamientos</b> (o en el calendario).</li>
+      <li>Si un día deja de tener bici, el entreno se borra solo de Garmin.</li></ul></details>
   </div>`;
 }
 /* ---------- login ---------- */
@@ -1014,7 +1022,7 @@ function vLogin(msg){
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2200); }
 document.getElementById("nav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
   UI.tab=b.dataset.tab; UI.mover=null; render(); window.scrollTo(0,0); });
-function sesionVista(){ const i=UI.dia; return ajustar(sesionDe(i), semaforo(i), iso(fecha(i))); }
+function sesionVista(){ const i=UI.dia; return ajustar(fuerzaDia(i)||sesionDe(i), semaforo(i), iso(fecha(i))); }
 
 app.addEventListener("click",async e=>{
   const b=e.target.closest("button,[data-dia]"); if(!b) return;
@@ -1035,11 +1043,11 @@ app.addEventListener("click",async e=>{
     if(nuevo===ex.kg) delete r.pesos[ex.n]; else r.pesos[ex.n]=fmtKg(nuevo);
     saveReg(r.fecha); render(); return; }
   if(d.garmin){ b.disabled=true; const ok=await publicarPlan(true); b.disabled=false;
-    toast(ok?"Enviado: en menos de 30 min estará en tu Garmin":"No se pudo enviar. Reintenta en un momento"); render(); return; }
+    toast(ok?"Enviado: en 1-2 minutos estará en tu Garmin":"No se pudo enviar. Reintenta en un momento"); render(); return; }
   if(b.id==="guardar"){
     const rpe=num(document.getElementById("rpe").value);
     const cumpl=(document.querySelector("[data-cu].on")||{}).dataset?.cu||"plan";
-    const tipo=sesionDe(i).tipo;
+    const tipo=fuerzaDia(i)?"fuerza":sesionDe(i).tipo;
     let sug;
     if(cumpl==="mas"||rpe>=9) sug="Mañana bajamos un poco la carga para que recuperes.";
     else if(cumpl==="menos") sug="La próxima sesión sube un poco (sin pasarse).";
@@ -1050,15 +1058,14 @@ app.addEventListener("click",async e=>{
   if(b.id==="gpeso"){ const v=document.getElementById("pesoCorp").value.trim(); if(!v) return;
     const f=iso(HOYD), r=REG[f]||(REG[f]={fecha:f}); r.pesoCorporal=v; saveReg(f); render(); toast("Peso guardado"); return; }
   if(d.meso){ UI.meso=d.meso; render(); return; }
-  if(d.resetsem){ const s=clone(semana()); s.orden=[...DEF_ORDEN]; delete s.segunda; setSemana(s); render(); toast("Orden original"); return; }
-  if(d.mover!==undefined||d.mover2!==undefined){ e.stopPropagation(); const t=d.mover!==undefined?"p":"s", k=+(d.mover??d.mover2);
-    UI.mover=(UI.mover&&UI.mover.k===t&&UI.mover.i===k)?null:{k:t,i:k}; render(); return; }
+  if(d.resetsem){ const s=clone(semana()); s.orden=[...DEF_ORDEN]; delete s.segunda; delete s.dias; setSemana(s); render(); toast("Semana tipo"); return; }
+  if(d.mv){ e.stopPropagation(); const [a,b]=d.mv.split("-").map(Number);
+    UI.mover=(UI.mover&&UI.mover.i===a&&UI.mover.j===b)?null:{i:a,j:b}; render(); return; }
   if(d.dia!==undefined){
     const k=+d.dia;
     if(UI.mover){
-      const {k:t,i:o}=UI.mover;
-      if(o!==k){ const s=clone(semana()); s.segunda=[...segundaDe(s)];
-        if(t==="p") [s.orden[o],s.orden[k]]=[s.orden[k],s.orden[o]]; else [s.segunda[o],s.segunda[k]]=[s.segunda[k],s.segunda[o]];
+      const {i:o,j}=UI.mover;
+      if(o!==k){ const s=clone(semana()), D=diasDe(s).map(x=>[...x]); const [id]=D[o].splice(j,1); D[k].push(id); s.dias=D;
         setSemana(s); toast(`Movido al ${DIAS[k].toLowerCase()}`); }
       UI.mover=null; render(); return; }
     UI.dia=k; UI.tab="hoy"; render(); window.scrollTo(0,0); }

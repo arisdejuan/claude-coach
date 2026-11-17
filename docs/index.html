@@ -347,7 +347,7 @@ async function cargar(){
     sb.from("actividades").select("id,fecha,tipo,nombre,duracion_s,distancia_m,potencia_media,potencia_norm,fc_media,carga,raw").gte("fecha", masDias(HOYD,-120).toISOString()).order("fecha"),
     sb.from("planificados").select("fecha,sesion,titulo,dur_min,pasos,ftp,descripcion,enviado").gte("fecha", iso(HOYD))
   ]);
-  const err=[p,s,r,o,a,pl].find(x=>x.error);
+  const err=[p,s,r,o,a].find(x=>x.error);
   if(err){ console.warn(err.error); setSync("⚠️ No se pudo leer la nube: "+err.error.message,"err"); return; }
   if(p.data){ A={...A, ...(p.data.perfil||{}), nombre:p.data.nombre||A.nombre}; }
   construirSesiones();
@@ -359,7 +359,7 @@ async function cargar(){
   REG=reg;
   OURA={}; o.data.forEach(x=>{ OURA[x.fecha]=x; });
   ACT=a.data;
-  PLAN={}; pl.data.forEach(x=>{ PLAN[x.fecha]={firma:firmaPlan(x), enviado:x.enviado}; });
+  PLAN={}; (pl.data||[]).forEach(x=>{ PLAN[x.fecha]={firma:firmaPlan(x), enviado:x.enviado}; });
   cacheSave();
   reintentarPendientes();
   programarPlan();

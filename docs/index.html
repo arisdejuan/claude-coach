@@ -734,9 +734,10 @@ function vsBici(s,a){
     ${a.fc_media?fila("Pulso medio", esZ2&&zf[1]?"≤ "+zf[1]+" ppm":"—", Math.round(a.fc_media)+" ppm"):""}
     </table><div style="margin-top:6px">${txt}</div></div>`;
 }
-function vsFuerza(s,r){
+function vsFuerza(s,r,f){
   const sets=r.sets||{}, marcadas=Object.values(sets).some(Boolean);
   if(!marcadas && !r.feedback) return "";
+  if(!r.terminada && !(f && f<iso(HOYD))) return "";   // el resumen sale al terminar la sesión (no a mitad)
   let pS=0,hS=0,pT=0,hT=0; const lin=[], rpes=[];
   s.ej.forEach((e,k)=>{ if(e.off||e.cinta) return;
     const n = marcadas ? Array.from({length:e.s},(_,j)=>sets[k+"-"+j]).filter(Boolean).length : e.s;
@@ -763,7 +764,7 @@ function tarjetaSesion(ses,f,r,primeraBici,act){
     <div class="row between"><div>${ses.opcional?`<div class="muted small">Opcional</div>`:""}<h3>${ses.ico} ${ses.titulo}</h3><div class="muted small">${ses.sub}</div></div>
     <div style="text-align:right">${ses.dur?`<b>${ses.dur}'</b><br>`:""}<span class="pill ${ses.int}">${ses.int}</span></div></div>
     ${ses.obj?`<div class="obj">🎯 <b>Objetivo:</b> ${ses.obj}</div>`:""}
-    ${ses.tipo==="bici"&&act?vsBici(ses,act):ses.tipo==="fuerza"?vsFuerza(ses,r):""}
+    ${ses.tipo==="bici"&&act?vsBici(ses,act):ses.tipo==="fuerza"?vsFuerza(ses,r,f):""}
     <div style="margin-top:10px">${ses.tipo==="fuerza"?vFuerza(ses,r):ses.tipo==="bici"?vBici(ses,f,!primeraBici):`<p>${ses.texto}</p>`}</div>
     ${ses.nota?`<p class="muted small">${ses.opcional?"💡":"🍌"} ${ses.nota}</p>`:""}
   </div>`;
@@ -794,7 +795,8 @@ function vHoy(){
       <input id="rpe" inputmode="decimal" value="${esc(fb?fb.rpe:"")}" placeholder="p. ej. 7,5"></div>
     <div style="margin-top:10px"><label class="f">Comentarios</label>
       <textarea id="com" placeholder="Sensaciones, molestias, lo que quieras…">${esc(fb?fb.com:"")}</textarea></div>
-    <button class="btn" style="margin-top:12px" id="guardar">${fb?"Actualizar feedback":"Guardar feedback"}</button>
+    <button class="btn" style="margin-top:12px" id="guardar">${lista.some(x=>x.tipo==="fuerza")&&!r.terminada?"✅ Guardar feedback y terminar sesión":fb?"Actualizar feedback":"Guardar feedback"}</button>
+    ${lista.some(x=>x.tipo==="fuerza")&&!r.terminada?`<p class="muted small" style="margin:6px 0 0;text-align:center">El resumen «previsto vs hecho» de la fuerza aparece al terminar.</p>`:""}
     ${fb?`<p class="small" style="color:var(--green)">✓ Guardado. ${esc(fb.sug||"")}</p>`:""}
   </div>`;
 }
@@ -1204,6 +1206,7 @@ app.addEventListener("click",async e=>{
     else if(rpe!=null && rpe<=7 && tipo==="fuerza") sug="Ha ido bien: la próxima vez sube peso donde el RPE fue bajo.";
     else sug="Todo según lo previsto.";
     const r=tocar(i); r.feedback={rpe:rpe??"", com:document.getElementById("com").value, cumpl, sug};
+    if(tipo==="fuerza" && !r.terminada){ r.terminada=new Date().toISOString(); saveReg(r.fecha); render(); toast("Sesión terminada: mira tu resumen arriba"); window.scrollTo({top:0,behavior:"smooth"}); return; }
     saveReg(r.fecha); render(); toast("Feedback guardado"); return; }
   if(b.id==="gpeso"){ const v=document.getElementById("pesoCorp").value.trim(); if(!v) return;
     const f=iso(HOYD), r=REG[f]||(REG[f]={fecha:f}); r.pesoCorporal=v; saveReg(f); render(); toast("Peso guardado"); return; }

@@ -9,6 +9,8 @@ Variables: SUPABASE_URL, SUPABASE_SERVICE_KEY, COACH_EMAIL
   python sync/revision.py ausencia list
   python sync/revision.py ausencia add DESDE HASTA TIPO "nota"   (TIPO: gym, nada, vacas, esqui, enfermo)
   python sync/revision.py ausencia del DESDE
+  python sync/revision.py bitacora [N]       → últimas N entradas de la bitácora del coach (qué se cambió y por qué)
+  python sync/revision.py bitacora add "texto" [origen]   → apunta una entrada (origen: móvil, revisión, ordenador…)
 
 Formato de nota.json:
 {
@@ -61,7 +63,8 @@ def datos():
                 "registros: feedback (rpe, cumpl, com), checkin (piernas y tobillo/rodilla de 1 a 5: 1 = molestan/cargadas, 5 = perfectos), pesos reales, rpeEj, sets. "
                 "actividades: carga = TSS estimado. atleta.perfil.contexto = quién es y sus lesiones/objetivos (léelo SIEMPRE). "
                 "atleta.perfil.ausencias = viajes/vacaciones [{tipo,desde,hasta,nota}]: esos días la web ya adapta las sesiones "
-                "y una semana con 3+ días fuera cuenta como descarga (el ciclo 3+1 se reinicia).",
+                "y una semana con 3+ días fuera cuenta como descarga (el ciclo 3+1 se reinicia). "
+                "atleta.perfil.bitacora = historial de cambios y su porqué (web, móvil, revisiones): léelo antes de decidir.",
         "atleta": atleta[0] if atleta else {},
         "semanas": leer("semanas", f"user_id=eq.{uid}&semana=gte.{(L - dt.timedelta(days=21)).isoformat()}&select=semana,datos&order=semana"),
         "registros": leer("registros", f"user_id=eq.{uid}&fecha=gte.{desde}&select=fecha,datos&order=fecha"),
@@ -85,6 +88,9 @@ def guardar_nota(ruta):
     for k in ("objetivoSemana", "objetivoMes"):
         if n.get(k):
             perfil[k] = str(n[k])
+    ss = n.get("semana_siguiente")
+    apuntar(perfil, f"Nota del coach para la semana del {sig}" + (" y semana reordenada" if ss and ss.get("dias") else "")
+            + (": " + "; ".join(str(a) for a in n.get("ajustes", [])[:4]) if n.get("ajustes") else ""))
     actualizar("atletas", f"user_id=eq.{uid}", {"perfil": perfil})
     print("Nota guardada para la semana del", sig)
 
@@ -100,6 +106,28 @@ def guardar_nota(ruta):
         print("Semana", sig, "reorganizada:", dias)
 
 
+def apuntar(p, texto, origen="Claude"):
+    """Añade una línea a la bitácora del coach (se guardan las 150 últimas)."""
+    b = p.get("bitacora") or []
+    b.append({"fecha": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"), "origen": origen, "texto": texto.strip()})
+    p["bitacora"] = b[-150:]
+
+
+def bitacora(args):
+    uid = usuario()
+    p = perfil_de(uid)
+    if args and args[0] == "add" and len(args) >= 2:
+        apuntar(p, args[1], args[2] if len(args) > 2 else "Claude")
+        actualizar("atletas", f"user_id=eq.{uid}", {"perfil": p})
+        print("Apuntado en la bitácora")
+        return
+    n = int(args[0]) if args and args[0].isdigit() else 20
+    for e in (p.get("bitacora") or [])[-n:]:
+        print(f"{e['fecha'][:16].replace('T', ' ')} · {e.get('origen', '')} · {e['texto']}")
+    if not p.get("bitacora"):
+        print("(bitácora vacía)")
+
+
 def perfil_de(uid):
     return (leer("atletas", f"user_id=eq.{uid}&select=perfil")[0]["perfil"]) or {}
 
@@ -112,6 +140,7 @@ def contexto(args):
         if len(texto) < 50:
             raise SystemExit("Contexto demasiado corto")
         p["contexto"] = texto
+        apuntar(p, "Contexto del atleta actualizado")
         actualizar("atletas", f"user_id=eq.{uid}", {"perfil": p})
         print("Contexto guardado (", len(texto), "caracteres )")
     else:
@@ -142,6 +171,8 @@ def ausencia(args):
     else:
         raise SystemExit(__doc__)
     p["ausencias"] = lista
+    apuntar(p, f"Ausencia {'añadida' if args[0] == 'add' else 'quitada'}: " + (
+        f"{TIPOS_AUS[args[3]]} del {args[1]} al {args[2]} {' '.join(args[4:])}".strip() if args[0] == "add" else f"la que empezaba el {args[1]}"))
     actualizar("atletas", f"user_id=eq.{uid}", {"perfil": p})
     print("Ausencias guardadas:", len(lista))
 
@@ -155,6 +186,8 @@ if __name__ == "__main__":
         contexto([])
     elif len(sys.argv) >= 3 and sys.argv[1] == "contexto_guardar":
         contexto(["guardar", sys.argv[2]])
+    elif len(sys.argv) >= 2 and sys.argv[1] == "bitacora":
+        bitacora(sys.argv[2:])
     elif len(sys.argv) >= 2 and sys.argv[1] == "ausencia":
         ausencia(sys.argv[2:])
     else:

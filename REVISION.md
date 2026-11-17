@@ -6,7 +6,8 @@ Los datos personales NO están en este repositorio: se leen de Supabase con `syn
 ## Pasos
 1. `pip install -r sync/requirements.txt`
 2. `python sync/revision.py datos > /tmp/datos.json` y léelo entero. **Empieza por `atleta.perfil.contexto`**
-   (quién es, lesiones, objetivos, semana tipo) y `atleta.perfil.ausencias` (viajes y vacaciones).
+   (quién es, lesiones, objetivos, semana tipo), `atleta.perfil.ausencias` (viajes y vacaciones) y
+   `atleta.perfil.bitacora` (cambios de la semana y su porqué, hechos desde la web o desde el móvil).
 3. Analiza la semana que termina (lunes → hoy) frente a la anterior:
    - Cumplimiento: sesiones hechas vs. previstas (registros + actividades de Strava).
    - **Comentarios escritos** en `registros[].datos.feedback.com`: dolor, molestias, cansancio, sueño, estrés, sensaciones, cosas que pide el atleta.
@@ -26,5 +27,6 @@ Los datos personales NO están en este repositorio: se leen de Supabase con `syn
    - `ajustes`: 0-4 frases concretas y accionables.
    - `objetivoSemana`: una frase.
    - `semana_siguiente.dias`: solo si hay que reordenar algo respecto a la semana tipo o a lo ya planificado.
-6. `python sync/revision.py guardar /tmp/nota.json`
+6. `python sync/revision.py guardar /tmp/nota.json` (apunta sola en la bitácora qué se guardó). Si la semana
+   siguiente se reordenó, añade el motivo: `python sync/revision.py bitacora add "Motivo…" "revisión"`.
 7. No hagas commits ni cambies código. Termina con un resumen de 3 líneas de lo que has guardado.

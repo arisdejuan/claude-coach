@@ -56,6 +56,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer}
 .card.aus{border-color:#5aa8ff55;background:#5aa8ff12;font-size:14px}.ausl{padding:8px 0;border-top:1px solid var(--line)}
 .ausform summary{cursor:pointer;color:var(--accent2);font-weight:600;padding:6px 0}
 select{font:inherit;font-size:16px;color:var(--text);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 10px;width:100%}
+.bit{padding:7px 0;border-top:1px solid var(--line);font-size:13.5px}
 .scale{display:flex;gap:6px} .scale button{flex:1;padding:9px 0;border-radius:10px;background:var(--card2);font-weight:700;color:var(--muted)}
 .scale button.on{background:var(--accent2);color:#06201d}
 .ex{border-top:1px solid var(--line);padding:12px 0}
@@ -959,14 +960,15 @@ function vAusencias(){
       <label class="f" style="margin-top:8px">Nota (opcional)</label><input id="aus-nota" placeholder="p. ej. Cerler, hotel con gimnasio">
       <button class="btn" style="margin-top:10px" data-ausadd="1">Guardar</button></details></div>`;
 }
-async function guardarAusencias(lista){
+async function guardarAusencias(lista, texto){
   A.ausencias=lista; cacheSave(); construirSesiones(); render(); programarPlan();
   if(!USER) return;
   setSync("Guardando…","");
   for(let k=0;k<4;k++){
     const {data,error}=await sb.from("atletas").select("perfil").maybeSingle();
-    if(!error){ const r=await sb.from("atletas").update({perfil:{...(data&&data.perfil||{}), ausencias:lista}}).eq("user_id",USER.id);
-      if(!r.error){ setSync("☁️ Guardado","ok"); return; } }
+    if(!error){ const pf=data&&data.perfil||{}, bit=[...(pf.bitacora||[]), {fecha:new Date().toISOString().slice(0,16)+"Z", origen:"web", texto}].slice(-150);
+      const r=await sb.from("atletas").update({perfil:{...pf, ausencias:lista, bitacora:bit}}).eq("user_id",USER.id);
+      if(!r.error){ A.bitacora=bit; cacheSave(); setSync("☁️ Guardado","ok"); return; } }
     await espera(1000*(k+1));
   }
   setSync("⚠️ No se pudo guardar el viaje: inténtalo de nuevo","err");
@@ -1189,6 +1191,13 @@ function vNota(){
     <div style="margin-top:8px">${esc(n.texto).split(/\n\s*\n/).map(p=>`<p>${p.replace(/\n/g,"<br>")}</p>`).join("")}</div>
     ${(n.ajustes||[]).length?`<div class="small"><b>Ajustes para esta semana:</b><ul>${n.ajustes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}</div>`;
 }
+function vBitacora(){
+  const b=(A.bitacora||[]).slice(-25).reverse();
+  const ico={web:"📱",móvil:"💬",movil:"💬",revisión:"🧑‍🏫",revision:"🧑‍🏫",ordenador:"💻"};
+  return `<details><summary>📓 Bitácora del coach${b.length?` · ${b.length}`:""}</summary>
+    <p class="muted small" style="margin:4px 0 8px">Qué se ha cambiado en tu plan, cuándo y por qué: desde la web, desde Claude en el móvil o en la revisión del domingo.</p>
+    ${b.map(e=>`<div class="bit"><span class="muted small">${ico[e.origen]||"🤖"} ${new Date(e.fecha).toLocaleString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})} · ${esc(e.origen||"")}</span><div>${esc(e.texto)}</div></div>`).join("")||`<p class="muted small">Todavía vacía.</p>`}</details>`;
+}
 function vInfo(){
   const F=A.ftp, w=p=>Math.round(F*p), kg=A.peso||null;
   const ZP=[["Z1","Recuperación","#7f8a99",0,.55,"Soltar piernas. Hablas sin esfuerzo."],
@@ -1203,6 +1212,7 @@ function vInfo(){
   const B=A.bloques;
   return `${header()}<h2>Información</h2>${vNota()}<div class="info">
   ${informe()}
+  ${vBitacora()}
   <details><summary>⚡ Tus zonas de potencia · FTP ${F} W${kg?` · ${fmtKg(Math.round(F/kg*10)/10)} W/kg`:""}</summary>
     <table class="tz">${ZP.map(([z,n,c,lo,hi,t])=>`<tr><td><i style="background:${c}"></i><b>${z} ${n}</b><div class="muted small">${t}</div></td><td>${lo?w(lo):0}${hi?"–"+w(hi):"+"} W<div class="muted small">${Math.round(lo*100)}${hi?"–"+Math.round(hi*100):"+"} %</div></td></tr>`).join("")}</table>
     <p class="muted small">En el rodillo el Edge marca estos vatios solo (modo ERG). Si cambia tu FTP, todo se recalcula.</p></details>
@@ -1315,8 +1325,9 @@ app.addEventListener("click",async e=>{
   if(d.meso){ UI.meso=d.meso; render(); return; }
   if(d.ausadd){ const t=document.getElementById("aus-tipo").value, de=document.getElementById("aus-desde").value, ha=document.getElementById("aus-hasta").value||de;
     if(!de || ha<de){ toast("Revisa las fechas"); return; }
-    guardarAusencias([...(A.ausencias||[]), {tipo:t, desde:de, hasta:ha, nota:document.getElementById("aus-nota").value.trim()}]); toast("Guardado: el plan se ha adaptado"); return; }
-  if(d.ausdel!==undefined){ const l=[...(A.ausencias||[])]; l.splice(+d.ausdel,1); guardarAusencias(l); toast("Quitado"); return; }
+    const nota=document.getElementById("aus-nota").value.trim();
+    guardarAusencias([...(A.ausencias||[]), {tipo:t, desde:de, hasta:ha, nota}], `Ausencia añadida: ${AUS[t][1]} del ${de} al ${ha}${nota?" · "+nota:""}`); toast("Guardado: el plan se ha adaptado"); return; }
+  if(d.ausdel!==undefined){ const l=[...(A.ausencias||[])], x=l.splice(+d.ausdel,1)[0]; guardarAusencias(l, `Ausencia quitada: ${AUS[x.tipo][1]} del ${x.desde} al ${x.hasta}`); toast("Quitado"); return; }
   if(d.resetsem){ const s=clone(semana()); s.orden=[...DEF_ORDEN]; delete s.segunda; delete s.dias; setSemana(s); render(); toast("Semana tipo"); return; }
   if(d.mv){ e.stopPropagation(); const [a,b]=d.mv.split("-").map(Number);
     UI.mover=(UI.mover&&UI.mover.i===a&&UI.mover.j===b)?null:{i:a,j:b}; render(); return; }

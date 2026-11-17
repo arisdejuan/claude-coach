@@ -111,6 +111,19 @@ nav button.on{color:var(--accent)}
   padding:10px 16px;border-radius:12px;opacity:0;transition:.3s;pointer-events:none;z-index:9}
 .toast.show{opacity:1}
 .hidden{display:none!important}
+.vol{margin-bottom:12px}
+.stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--card2)}
+.stack i{display:block;height:100%}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:10px;font-size:12.5px}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.capas{position:relative;width:62%;height:100%}
+.pila{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;border-radius:4px 4px 0 0;overflow:hidden;min-height:2px}
+.pila i{display:block;width:100%}
+.pila.fut{opacity:.28}
+.chart span.hoyc{color:var(--accent);font-weight:700}
+.explica{margin-top:10px;font-size:13.5px}
+.explica summary{color:var(--accent2);cursor:pointer;font-weight:600}
+.explica p{margin:8px 0}
 </style>
 </head>
 <body>
@@ -172,17 +185,17 @@ function construirSesiones(){
   const pct=(rm,p)=>r25(rm*p), F=A.ftp, w=p=>Math.round(F*p);
   SES = {
     fa:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza A", sub:"Pierna pesada + tobillo", dur:80, int:"alta",
-      extra:`Opcional por la tarde: rodillo Z2 45' a ${w(.6)}-${w(.69)} W`,
+      extra:`Opcional por la tarde: rodillo Z2 45' a ${w(.6)}-${w(.69)} W`, extraCorto:"Tarde (opcional): rodillo Z2 45'",
       calentamiento:["Movilidad de tobillo en pared · 2 × 10 por lado","Cadera 90/90 · 2 × 5 por lado",
         "Puente de glúteo · 2 × 10","Sentadilla goblet con talones elevados y pausa abajo · 2 × 5"],
       ej:[
         {n:"Cinta: caminar en inclinación", s:1, r:"10'", kg:null, d:"—", nota:"Inclinación 8-10 %, 5,5-6 km/h. Semana 1: solo caminar.", cinta:true},
-        {n:"Sentadilla con talones elevados", s:4, r:"4", kg:pct(A.rm.sentadilla,0.79), d:"3'", nota:"Cuña bajo los talones. RPE 7-8: deja 2-3 reps en reserva.", main:true},
-        {n:"Sentadilla búlgara", s:3, r:"6/pierna", kg:"2×20", d:"2'", nota:"Empieza por la pierna derecha. Rango sin dolor. Primera serie ligera de prueba.", main:true},
-        {n:"Isometría: sentadilla española", s:4, r:"40\"", kg:null, d:"1'30", nota:"Banda detrás de las rodillas. Tensión 7/10."},
-        {n:"Sóleo sentado (máquina)", s:3, r:"12", kg:"60", d:"1'30", nota:"Bajada lenta de 3\". Pausa abajo."},
-        {n:"Gemelo de pie a una pierna", s:3, r:"8/pierna", kg:"+16", d:"1'", nota:"Sube rápido, baja en 3\"."},
-        {n:"Dead bug con carga", s:3, r:"8/lado", kg:"10", d:"1'", nota:"Lumbar pegada al suelo. Superserie opcional: rueda abdominal × 8."}
+        {n:"Sentadilla con talones elevados", s:4, r:"4", kg:pct(A.rm.sentadilla,0.79), d:"3'", q:"max", nota:"Cuña bajo los talones. RPE 7-8: deja 2-3 reps en reserva.", main:true},
+        {n:"Sentadilla búlgara", q:"hip", s:3, r:"6/pierna", kg:"2×20", d:"2'", nota:"Empieza por la pierna derecha. Rango sin dolor. Primera serie ligera de prueba.", main:true},
+        {n:"Isometría: sentadilla española", q:"ten", s:4, r:"40\"", kg:null, d:"1'30", nota:"Banda detrás de las rodillas. Tensión 7/10."},
+        {n:"Sóleo sentado (máquina)", q:"ten", s:3, r:"12", kg:"60", d:"1'30", nota:"Bajada lenta de 3\". Pausa abajo."},
+        {n:"Gemelo de pie a una pierna", q:"ten", s:3, r:"8/pierna", kg:"+16", d:"1'", nota:"Sube rápido, baja en 3\"."},
+        {n:"Dead bug con carga", q:"core", s:3, r:"8/lado", kg:"10", d:"1'", nota:"Lumbar pegada al suelo. Superserie opcional: rueda abdominal × 8."}
       ]},
     s1:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: series 1", sub:"Sweet spot", dur:80, int:"alta",
       pasos:[
@@ -197,12 +210,12 @@ function construirSesiones(){
         "Dominada escapular · 2 × 6","Puente de glúteo · 10"],
       ej:[
         {n:"Cinta: caminar / trotar", s:1, r:"10'", kg:null, d:"—", nota:"Bloques de 2' caminando + 30\" trote muy suave. Para si el tobillo avisa.", cinta:true},
-        {n:"Peso muerto con barra hexagonal", s:4, r:"3", kg:pct(A.rm.pesoMuerto,0.78), d:"3'", nota:"RPE 7. Velocidad, no agonía.", main:true},
-        {n:"Press de hombro con barra", s:4, r:"4", kg:pct(A.rm.press,0.8), d:"2'30", nota:"Glúteo apretado, sin arquear.", main:true},
-        {n:"Dominadas lastradas", s:4, r:"5", kg:"+10", d:"2'", nota:"Escápulas abajo antes de tirar. Antes: 1 × 5 sin lastre.", main:true},
-        {n:"Peso muerto rumano a una pierna", s:3, r:"6/pierna", kg:"2×22", d:"1'30", nota:"Cadera cuadrada."},
-        {n:"Copenhague (aductores)", s:3, r:"25\"/lado", kg:null, d:"1'", nota:"Versión rodilla apoyada si molesta."},
-        {n:"Pallof press", s:3, r:"10/lado", kg:"15", d:"1'", nota:"Anti-rotación en polea: que no gire el tronco."}
+        {n:"Peso muerto con barra hexagonal", q:"max", s:4, r:"3", kg:pct(A.rm.pesoMuerto,0.78), d:"3'", nota:"RPE 7. Velocidad, no agonía.", main:true},
+        {n:"Press de hombro con barra", q:"max", s:4, r:"4", kg:pct(A.rm.press,0.8), d:"2'30", nota:"Glúteo apretado, sin arquear.", main:true},
+        {n:"Dominadas lastradas", q:"max", s:4, r:"5", kg:"+10", d:"2'", nota:"Escápulas abajo antes de tirar. Antes: 1 × 5 sin lastre.", main:true},
+        {n:"Peso muerto rumano a una pierna", q:"hip", s:3, r:"6/pierna", kg:"2×22", d:"1'30", nota:"Cadera cuadrada."},
+        {n:"Copenhague (aductores)", q:"core", s:3, r:"25\"/lado", kg:null, d:"1'", nota:"Versión rodilla apoyada si molesta."},
+        {n:"Pallof press", q:"core", s:3, r:"10/lado", kg:"15", d:"1'", nota:"Anti-rotación en polea: que no gire el tronco."}
       ]},
     s2:{ ico:"🚴", tipo:"bici", titulo:"Rodillo: series 2", sub:"Umbral", dur:70, int:"alta",
       pasos:[
@@ -225,11 +238,11 @@ function construirSesiones(){
       ]},
     gym:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza C", sub:"Tobillo, core y movilidad (sin cargas pesadas)", dur:45, int:"baja",
       ej:[
-        {n:"Movilidad de tobillo con banda", s:3, r:"10/lado", kg:null, d:"30\"", nota:"Rodilla hacia la punta del pie, sin dolor."},
-        {n:"Equilibrio a una pierna sobre cojín", s:3, r:"30\"/lado", kg:null, d:"30\"", nota:"Útil para el esquí."},
-        {n:"Step-down lateral lento", s:3, r:"8/pierna", kg:null, d:"1'", nota:"Rodilla alineada con el pie."},
-        {n:"Puente de glúteo a una pierna", s:3, r:"10/pierna", kg:"10", d:"1'", nota:"Pausa arriba 2\"."},
-        {n:"Plancha lateral", s:3, r:"30\"/lado", kg:null, d:"45\"", nota:""}
+        {n:"Movilidad de tobillo con banda", q:"ten", s:3, r:"10/lado", kg:null, d:"30\"", nota:"Rodilla hacia la punta del pie, sin dolor."},
+        {n:"Equilibrio a una pierna sobre cojín", q:"ten", s:3, r:"30\"/lado", kg:null, d:"30\"", nota:"Útil para el esquí."},
+        {n:"Step-down lateral lento", q:"ten", s:3, r:"8/pierna", kg:null, d:"1'", nota:"Rodilla alineada con el pie."},
+        {n:"Puente de glúteo a una pierna", q:"hip", s:3, r:"10/pierna", kg:"10", d:"1'", nota:"Pausa arriba 2\"."},
+        {n:"Plancha lateral", q:"core", s:3, r:"30\"/lado", kg:null, d:"45\"", nota:""}
       ]},
     descanso:{ ico:"😴", tipo:"activo", titulo:"Descanso", sub:"Recupera", dur:0, int:"baja",
       texto:"Día libre. Si te apetece: paseo o movilidad suave." }
@@ -466,6 +479,68 @@ function pmc(){
   return {ctl:Math.round(ctl), atl:Math.round(atl), tsb:Math.round(ctl-atl), carga, hayDatos:ACT.length>0};
 }
 
+/* ---------- volumen y qué estamos trabajando ----------
+   Bici: minutos por tipo de trabajo según % de FTP (plan) o, si no hay plan parecido, según la
+   intensidad media de Strava (estimado). Fuerza: series por cualidad (campo q de cada ejercicio). */
+const CAT_B={base:["Base aeróbica","#3dd6c6"],tempo:["Tempo","#3ecf72"],ss:["Sweet spot","#f4b740"],umb:["Umbral","#ff6a3d"],vo2:["VO2 / anaeróbico","#ff5a5a"]};
+const CAT_F={max:["Fuerza máxima","#ff6a3d"],hip:["Fuerza-hipertrofia","#5aa8ff"],ten:["Tendón y tobillo","#3ecf72"],core:["Core y estabilidad","#f4b740"]};
+const catPct = x => x<.76?"base":x<.88?"tempo":x<.95?"ss":x<=1.05?"umb":"vo2";
+const sumar = (o,k,v) => { o[k]=(o[k]||0)+v; };
+function minBici(s){ const o={}; if(!s||s.tipo!=="bici") return o;
+  s.pasos.forEach(p=>{ sumar(o,catPct((p.lo+p.hi)/2/A.ftp),p.reps*p.min); if(p.rec) sumar(o,"base",(p.reps-1)*p.rec); });
+  return o; }
+const esBici = a => /ride/i.test(a.tipo||"");
+const repsNum = r => /^\d+$/.test(String(r)) ? +r : null;
+function semanaVol(L){
+  const V={plan:{min:0,carga:0,ses:0,series:0,ton:0,cb:{},cf:{}}, hecho:{min:0,carga:0,ses:0,series:0,ton:0,cb:{},cf:{}}, extra:0, estimado:false};
+  const inicio=A.bloques[0][1], conPlan=iso(L)>=inicio, estaSemana=iso(L)===SEMKEY;
+  for(let d=0;d<7;d++){
+    const D=masDias(L,d), f=iso(D);
+    const sem = estaSemana ? semaforo(d) : {nivel:0, motivos:[], tobillo:false, extra:false};
+    const s = conPlan ? ajustar(sesionFecha(D), sem, f) : null;
+    const r = REG[f]||{};
+    // --- bici programada ---
+    if(s && s.tipo==="bici"){ const m=minBici(s); V.plan.min+=s.dur; V.plan.carga+=cargaPlan(s)||0; Object.entries(m).forEach(([k,v])=>sumar(V.plan.cb,k,v)); }
+    if(s && s.extraCorto && sem.nivel===0) V.extra+=45;
+    // --- bici hecha (Strava) ---
+    actDia(f).filter(esBici).forEach(a=>{
+      const min=(a.duracion_s||0)/60; V.hecho.min+=min; V.hecho.carga+=a.carga||0;
+      const w=a.potencia_norm||a.potencia_media, IF=w?w/A.ftp:null;
+      let dist=null;
+      if(s && s.tipo==="bici" && IF && min>=s.dur*0.5){ const pIF=Math.sqrt((cargaPlan(s)||0)/(s.dur/60)/100); if(Math.abs(IF-pIF)<=0.12) dist=minBici(s); }
+      if(dist){ const tot=Object.values(dist).reduce((x,y)=>x+y,0)||1; Object.entries(dist).forEach(([k,v])=>sumar(V.hecho.cb,k,v/tot*min)); }
+      else { V.estimado=true;
+        let c="base"; if(IF) c=catPct(IF); else if(a.fc_media){ const x=a.fc_media/(A.fc_umbral||170); c=x<.89?"base":x<.94?"tempo":x<.97?"ss":x<=1.02?"umb":"vo2"; }
+        sumar(V.hecho.cb,c,min); }
+    });
+    // --- fuerza ---
+    if(s && s.tipo==="fuerza"){
+      V.plan.ses++;
+      const sets=r.sets||{}, marcadas=Object.values(sets).some(Boolean), hecha=marcadas||!!r.feedback;
+      if(hecha) V.hecho.ses++;
+      s.ej.forEach((e,k)=>{
+        if(e.off||!e.q) return;
+        const reps=repsNum(e.r);
+        V.plan.series+=e.s; sumar(V.plan.cf,e.q,e.s);
+        if(reps && typeof e.kg==="number") V.plan.ton+=e.s*reps*e.kg;
+        const n = marcadas ? Array.from({length:e.s},(_,j)=>sets[k+"-"+j]).filter(Boolean).length : (hecha?e.s:0);
+        if(!n) return;
+        V.hecho.series+=n; sumar(V.hecho.cf,e.q,n);
+        const kg=num((r.pesos||{})[e.n]) ?? (typeof e.kg==="number"?e.kg:null);
+        if(reps && kg!=null) V.hecho.ton+=n*reps*kg;
+      });
+    }
+  }
+  return V;
+}
+const fmtMin = m => hm(Math.round(m)*60);
+const pctTxt = (o,k) => { const t=Object.values(o).reduce((a,b)=>a+b,0); return t?Math.round((o[k]||0)/t*100):0; };
+function barraApilada(o,CAT){ const t=Object.values(o).reduce((a,b)=>a+b,0);
+  if(!t) return `<div class="stack vacia"></div>`;
+  return `<div class="stack">${Object.keys(CAT).filter(k=>o[k]).map(k=>`<i style="width:${o[k]/t*100}%;background:${CAT[k][1]}"></i>`).join("")}</div>`; }
+function leyenda(o,CAT,fmt){ return `<div class="leyenda">${Object.keys(CAT).filter(k=>o[k]).map(k=>`<span><i style="background:${CAT[k][1]}"></i>${CAT[k][0]} <b>${fmt(o[k])}</b> · ${pctTxt(o,k)} %</span>`).join("")||`<span class="muted">Nada todavía</span>`}</div>`; }
+function dominante(o,CAT){ const k=Object.keys(o).sort((a,b)=>o[b]-o[a])[0]; return k?{n:CAT[k][0].toLowerCase(), p:pctTxt(o,k)}:null; }
+
 /* ---------- vistas ---------- */
 const app=document.getElementById("app");
 let renderPend=false, renderTimer=null;
@@ -603,13 +678,94 @@ function vSemana(){
       <div class="d"><span>${DIAS[i]}</span><b>${f.getDate()}</b></div>
       <div class="ico">${s.ico}</div>
       <div class="body"><b>${s.titulo}</b><div class="muted small">${s.sub}${s.dur?` · ${s.dur}'`:""}</div>${aviso}
+        ${s.extraCorto?`<div class="small" style="color:var(--accent2)">➕ ${s.extraCorto}</div>`:""}
         ${fb?`<div class="small" style="color:var(--green)">✓ Hecho · RPE ${esc(fb.rpe||"–")}</div>`:""}
         ${acts.map(a=>`<div class="small" style="color:var(--strava)">● ${hm(a.duracion_s||0)}${a.potencia_norm?` · ${Math.round(a.potencia_norm)} W`:""}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}</div>`).join("")}</div>
       <button class="btn ghost small" data-mover="${i}">${sel===i?"✕":"↕ Mover"}</button>
     </div>`; }).join("")}
   ${cambiada?`<button class="btn ghost" data-resetsem="1">Volver al orden original</button>`:""}
+  ${vVolumen(semanaVol(LUNES))}
   <div class="card" style="margin-top:14px"><h3>🎯 Objetivo de la semana</h3>
     <p class="muted" style="margin:6px 0 0">${esc(A.objetivoSemana||"Completar las sesiones clave sin pasar de RPE 8 y apuntar el feedback de cada una.")}</p></div>`;
+}
+function filaVol(ico,n,h,p,fmt,nota){
+  const pc=p?Math.min(100,h/p*100):0;
+  return `<div class="vol"><div class="row between"><span>${ico} ${n}</span><span class="small" style="white-space:nowrap"><b>${fmt(h)}</b> <span class="muted">de ${fmt(p)}</span></span></div>
+    <div class="bar"><i style="width:${h?Math.max(3,pc):0}%;${h>p*1.1&&p?"background:var(--amber)":""}"></i></div>${nota?`<div class="muted small" style="margin-top:3px">${nota}</div>`:""}</div>`;
+}
+function vVolumen(V){
+  const P=V.plan, H=V.hecho, kg=x=>Math.round(x).toLocaleString("es-ES")+" kg", n=x=>String(Math.round(x));
+  const db=dominante(P.cb,CAT_B), df=dominante(P.cf,CAT_F);
+  return `<h2>Volumen de la semana</h2>
+  <div class="card"><p class="muted small" style="margin:0 0 10px">Hecho frente a programado. La bici sale de Strava; la fuerza, de las series que marcas (o de todo el entreno si solo dejas feedback).</p>
+    ${filaVol("🚴","Bici · tiempo",H.min,P.min,fmtMin,V.extra?`➕ Además, ${V.extra}' de Z2 opcional`:"")}
+    ${filaVol("🚴","Bici · carga",H.carga,P.carga,n," pts")}
+    ${filaVol("🏋️","Fuerza · sesiones",H.ses,P.ses,n)}
+    ${filaVol("🏋️","Fuerza · series",H.series,P.series,n)}
+    ${filaVol("🏋️","Fuerza · kilos movidos",H.ton,P.ton,kg)}
+    <p class="muted small" style="margin:4px 0 0">Kilos movidos = peso × repeticiones × series de los ejercicios con barra o carga fija.</p></div>
+  <h2>Qué estamos trabajando</h2>
+  <div class="card">
+    <h3>🚴 Bici (minutos)</h3>
+    <div class="small muted" style="margin:8px 0 4px">Programado</div>${barraApilada(P.cb,CAT_B)}${leyenda(P.cb,CAT_B,fmtMin)}
+    <div class="small muted" style="margin:12px 0 4px">Hecho${V.estimado?" (en parte estimado con tu potencia media)":""}</div>${barraApilada(H.cb,CAT_B)}${leyenda(H.cb,CAT_B,fmtMin)}
+    <h3 style="margin-top:16px">🏋️ Fuerza (series)</h3>
+    <div class="small muted" style="margin:8px 0 4px">Programado</div>${barraApilada(P.cf,CAT_F)}${leyenda(P.cf,CAT_F,n)}
+    <div class="small muted" style="margin:12px 0 4px">Hecho</div>${barraApilada(H.cf,CAT_F)}${leyenda(H.cf,CAT_F,n)}
+    ${db||df?`<p class="small" style="margin:12px 0 0">💡 ${db?`El ${db.p} % de la bici programada es <b>${db.n}</b>`:""}${db&&df?"; en ":""}${df?`${db?"":"En "}fuerza manda la <b>${df.n}</b> (${df.p} %)`:""}. ${tipoSemana()}</p>`:""}
+  </div>`;
+}
+function tipoSemana(){ const b=bloque();
+  if(b.descarga) return "Semana de descarga: menos volumen para asimilar.";
+  return {0:"Bloque de base: mucha base aeróbica y fuerza máxima con pocas repeticiones.",1:"Construcción: suben sweet spot y umbral.",
+    2:"Específico Mallorca: volumen largo en base y ritmo de carrera.",3:"Afinado: poco volumen, algo de intensidad."}[b.k]||""; }
+function mesociclo(){
+  const b=bloque(), ini=new Date(A.bloques[b.k][1]+"T00:00:00");
+  const k=Math.max(0,Math.floor((LUNES-ini)/(7*864e5))), n=Math.floor(k/4);
+  return {n:n+1, nombre:b.nombre, ini:masDias(ini,n*28)};
+}
+function vMeso(){
+  const modo=UI.meso||"meso", M=mesociclo();
+  const lunes = modo==="meso" ? [0,1,2,3].map(w=>masDias(M.ini,7*w)) : [7,6,5,4,3,2,1,0].map(w=>masDias(LUNES,-7*w));
+  const datos=lunes.map(L=>{ const V=semanaVol(L), fut=L>LUNES; return {L, fut, cb:fut?{}:V.hecho.cb, cf:fut?{}:V.hecho.cf, pb:V.plan.cb, pf:V.plan.cf}; });
+  const tot=(o)=>Object.values(o).reduce((a,b)=>a+b,0);
+  const mxB=Math.max(1,...datos.flatMap(d=>[tot(d.cb),tot(d.pb)])), mxF=Math.max(1,...datos.flatMap(d=>[tot(d.cf),tot(d.pf)]));
+  const pila=(o,CAT,mx,cls)=>tot(o)?`<div class="pila ${cls}" style="height:${tot(o)/mx*100}%">${Object.keys(CAT).filter(k=>o[k]).reverse().map(k=>`<i style="flex:${o[k]};background:${CAT[k][1]}"></i>`).join("")}</div>`:"";
+  const col=(d,o,p,CAT,mx,etq)=>`<div class="col"><div class="capas">${pila(p,CAT,mx,"fut")}${pila(o,CAT,mx,"")}</div>
+    <span class="${iso(d.L)===SEMKEY?"hoyc":""}">${etq}</span></div>`;
+  const etq=d=>`${d.L.getDate()}/${d.L.getMonth()+1}`;
+  const sB={}, sF={}; datos.filter(d=>!d.fut).forEach(d=>{ Object.entries(d.cb).forEach(([k,v])=>sumar(sB,k,v)); Object.entries(d.cf).forEach(([k,v])=>sumar(sF,k,v)); });
+  return `<h2>Qué estamos trabajando</h2>
+  <div class="seg" style="margin-bottom:10px">${[["meso",`Mesociclo ${M.n}`],["8s","Últimas 8 semanas"]].map(([k,t])=>`<button data-meso="${k}" class="${modo===k?"on":""}">${t}</button>`).join("")}</div>
+  <div class="card">
+    <p class="muted small" style="margin:0 0 6px">${modo==="meso"?`${esc(M.nombre)} · mesociclo ${M.n}: 3 semanas de carga + 1 de descarga. En claro, lo programado; encima, en color, lo hecho.`:"En claro, lo programado; en color, lo hecho (bici con Strava, fuerza con tus registros)."}</p>
+    <h3>🚴 Bici (minutos)</h3>
+    <div class="chart">${datos.map(d=>col(d,d.cb,d.pb,CAT_B,mxB,etq(d))).join("")}</div>
+    ${leyenda(sB,CAT_B,fmtMin)}
+    <h3 style="margin-top:16px">🏋️ Fuerza (series)</h3>
+    <div class="chart">${datos.map(d=>col(d,d.cf,d.pf,CAT_F,mxF,etq(d))).join("")}</div>
+    ${leyenda(sF,CAT_F,x=>String(Math.round(x)))}
+  </div>`;
+}
+function vForma(P){
+  const minZ2=Math.round(P.ctl/42*60);
+  const frescura = P.tsb>5?"Estás fresco: buen momento para un test o una carrera."
+    : P.tsb>=-10?"Equilibrado: entrenas y recuperas a la par."
+    : P.tsb>=-30?"Estás cargando: es lo normal en semanas de carga. Si dura más de 2-3 semanas, toca descargar."
+    : "Mucha fatiga acumulada: conviene bajar ya.";
+  return `<h2>Estado de forma</h2>
+  <div class="card"><div class="grid4">
+    <div class="stat"><b>${P.hayDatos?P.ctl:"—"}</b><span>Forma</span></div>
+    <div class="stat"><b>${P.hayDatos?P.atl:"—"}</b><span>Fatiga</span></div>
+    <div class="stat ${P.tsb>=-10?"good":P.tsb>=-30?"mid":"bad"}"><b>${P.hayDatos?(P.tsb>0?"+":"")+P.tsb:"—"}</b><span>Frescura</span></div>
+    <div class="stat"><b>${A.ftp}</b><span>FTP W</span></div></div>
+    ${P.hayDatos?`<p class="small" style="margin:10px 0 0">👉 ${frescura}</p>
+    <details class="explica"><summary>¿Qué significan estos números?</summary>
+      <p><b>Forma (${P.ctl})</b>: tu carga media diaria de las <b>últimas 6 semanas</b>. Es tu "motor": sube despacio cuando entrenas con constancia y baja despacio si paras. Tu ${P.ctl} equivale a unos <b>${minZ2}' de rodaje suave (Z2) cada día</b>. Para Mallorca 312, como referencia, interesa llegar a <b>70-80</b>.</p>
+      <p><b>Fatiga (${P.atl})</b>: lo mismo, pero de los <b>últimos 7 días</b>. Sube rápido tras una semana dura y baja rápido al descansar.</p>
+      <p><b>Frescura (${P.tsb>0?"+":""}${P.tsb})</b> = forma − fatiga. Entre −10 y −30: estás construyendo (normal). Por debajo de −30: demasiada carga. Entre 0 y +15: fresco, es donde queremos llegar el día de Mallorca.</p>
+      <p class="muted">Se calcula con tus actividades de Strava (vatios o, si no hay, pulso). 1 hora a tu FTP (a tope) = 100 puntos; 1 hora en Z2 ≈ 40-45.</p>
+    </details>`:`<p class="muted small" style="margin-bottom:0">Aparecerá cuando Strava sincronice tus actividades.</p>`}</div>`;
 }
 function vProgreso(){
   const g=(n,act,obj,ini,u)=>{ if(act==null||obj==null) return ""; const p=Math.max(0,Math.min(100,Math.round((act-ini)/(obj-ini)*100)));
@@ -632,13 +788,8 @@ function vProgreso(){
   return `${header()}<h2>Esta semana</h2>
   <div class="card"><div class="row between"><b>Sesiones hechas</b><span>${hechas} de ${plan}</span></div>
     <div class="bar" style="margin-top:8px"><i style="width:${Math.max(3,hechas/plan*100)}%"></i></div></div>
-  <h2>Estado de forma</h2>
-  <div class="card"><div class="grid4">
-    <div class="stat"><b>${P.hayDatos?P.ctl:"—"}</b><span>Forma</span></div>
-    <div class="stat"><b>${P.hayDatos?P.atl:"—"}</b><span>Fatiga</span></div>
-    <div class="stat ${P.tsb>=0?"good":P.tsb>-20?"mid":"bad"}"><b>${P.hayDatos?(P.tsb>0?"+":"")+P.tsb:"—"}</b><span>Frescura</span></div>
-    <div class="stat"><b>${A.ftp}</b><span>FTP W</span></div></div>
-    <p class="muted small" style="margin-bottom:0">${P.hayDatos?"Calculado con tus actividades de Strava. Forma: últimas 6 semanas · Fatiga: últimos 7 días · Frescura positiva = llegas descansado.":"Aparecerá cuando Strava sincronice tus actividades."}</p></div>
+  ${vForma(P)}
+  ${vMeso()}
   <h2>Carga semanal</h2>
   <div class="card"><div class="row small"><span><i style="display:inline-block;width:10px;height:10px;background:var(--line);border-radius:3px"></i> Prevista</span>
     <span><i style="display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:3px"></i> Hecha (Strava)</span></div>
@@ -709,6 +860,7 @@ app.addEventListener("click",async e=>{
     saveReg(r.fecha); render(); toast("Feedback guardado"); return; }
   if(b.id==="gpeso"){ const v=document.getElementById("pesoCorp").value.trim(); if(!v) return;
     const f=iso(HOYD), r=REG[f]||(REG[f]={fecha:f}); r.pesoCorporal=v; saveReg(f); render(); toast("Peso guardado"); return; }
+  if(d.meso){ UI.meso=d.meso; render(); return; }
   if(d.resetsem){ const s=clone(semana()); s.orden=[...DEF_ORDEN]; setSemana(s); render(); toast("Orden original"); return; }
   if(d.mover!==undefined){ e.stopPropagation(); const k=+d.mover; UI.mover=UI.mover===k?null:k; render(); return; }
   if(d.dia!==undefined){

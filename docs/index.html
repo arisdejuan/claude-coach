@@ -47,6 +47,11 @@ button{font:inherit;color:inherit;border:0;cursor:pointer}
 .seg{display:flex;background:var(--card2);border-radius:12px;padding:3px;gap:3px}
 .seg button{flex:1;padding:8px 4px;border-radius:9px;background:transparent;color:var(--muted);font-size:13px;font-weight:600}
 .seg button.on{background:var(--accent);color:#fff}
+.cab-bloque{font-size:13px;color:var(--muted);margin-bottom:2px;line-height:1.35}
+.cuenta{text-align:right;flex-shrink:0;line-height:1.15}.cuenta b{display:block;font-size:26px;color:var(--accent)}.cuenta span{font-size:12px;color:var(--muted)}
+.barra input[type=range]{width:100%;margin:8px 0 2px;accent-color:var(--accent2);height:28px}
+.barra.vacia input[type=range]{opacity:.45}.barra-v{font-size:13px;white-space:nowrap}.barra label.f{flex:1;min-width:0}.barra.vacia .barra-v{color:var(--muted);font-weight:500}
+.barra-v[data-niv="4"],.barra-v[data-niv="5"]{color:var(--amber)}
 .scale{display:flex;gap:6px} .scale button{flex:1;padding:9px 0;border-radius:10px;background:var(--card2);font-weight:700;color:var(--muted)}
 .scale button.on{background:var(--accent2);color:#06201d}
 .ex{border-top:1px solid var(--line);padding:12px 0}
@@ -484,12 +489,18 @@ const ALERTAS=[
   {re:/fiebre|enferm|gripe|resfriad|catarro|covid|vomit|diarrea|mareo|mareado/, que:"malestar o enfermedad", nivel:2},
   {re:/lesi[oó]n|pinchazo|chasquido|me he hecho da[nñ]o|cojeo|cojea/, que:"una posible lesión", nivel:2},
   {re:/dolor|duele|dol[ií]a|molest|inflamad|hinchad/, que:"dolor o molestias", nivel:1},
-  {re:/agotad|reventad|destrozad|muy cansad|sin fuerza|vac[ií]o|pájara|pajara|fundid/, que:"mucho cansancio", nivel:1},
+  {re:/agotad|reventad|destrozad|muy cansad|sin fuerza|vac[ií]o|pajara|fundid/, que:"mucho cansancio", nivel:1},
   {re:/dorm[ií] mal|mal dormid|no he dormido|poco sue[nñ]o|insomnio|estr[eé]s/, que:"mal descanso o estrés", nivel:1}
 ];
+// Quita frases negadas para no confundirlas con alertas: «ninguna molestia», «sin dolor», «no me duele», «ni fiebre»…
+function quitarNegaciones(t){
+  return t.normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\bno (me |te |le )?(ha |han )?(duele|duelen|dolido|molesta|molestan|molestado)\b/g," ")
+    .replace(/\b(sin|ni|ningun|ninguna|ningunos|ningunas|nada de|cero|no (tengo|tenia|noto|note|siento|senti|hay|habia|he tenido|estoy|estaba|me he notado))( (ningun|ninguna|nada de|el|la|los|las|de|mucho|mucha|demasiado|nada))* [a-zñ]+/g," ");
+}
 function alertaComentario(t){
   if(!t) return null;
-  if(/sin (dolor|molestias)|no (me )?(duele|molesta)|nada de dolor/.test(t)) t=t.replace(/sin (dolor|molestias)|no (me )?(duele|molesta)|nada de dolor/g,"");
+  t=quitarNegaciones(t);
   const a=ALERTAS.find(x=>x.re.test(t)); if(!a) return null;
   return {...a, tobillo:/tobillo|rodilla|aquiles|gemelo|s[oó]leo/.test(t) && /dolor|duele|molest|inflamad|hinchad/.test(t)};
 }
@@ -512,7 +523,7 @@ function semaforo(i){
     motivos=[`VFC ${hv.v7} ms (media 7 días) · tu normal ${hv.base} ms${nivel?" → por debajo":""}`];
   } else {
     nivel = rd==null ? 0 : rd>=80 ? 0 : rd>=65 ? 1 : 2;
-    motivos=[rd==null ? "Sin dato de Oura todavía" : `Recuperación Oura ${rd}${hv===null&&vfcDias()?` (la VFC se usará con 14 días de historial: llevas ${vfcDias()})`:""}`];
+    motivos=[rd==null ? "Sin dato de Oura todavía" : `Recuperación Oura ${rd}${hv===null&&vfcDias()?` · el semáforo pasará a usar tu VFC en cuanto haya 3 semanas de datos`:""}`];
   }
   if(c.piernas && c.piernas<=2){ nivel++; motivos.push("piernas cargadas"); }
   // Ayer: feedback o, si no hay, lo que dice Strava frente a lo previsto
@@ -676,9 +687,9 @@ function render(){
 function header(){
   const b=bloque();
   const dias = A.reto&&A.reto.fecha ? Math.ceil((new Date(A.reto.fecha+"T00:00:00")-HOYD)/864e5) : null;
-  return `<div class="row between"><div><div class="muted small">Bloque: ${b.nombre} · semana ${b.sem}${b.descarga?" (descarga)":""}</div>
-    <h1>Hola${A.nombre?", "+esc(A.nombre):""}</h1><div id="sync" class="sync ${sync.cls}">${sync.txt}</div></div>
-    ${dias!=null?`<div style="text-align:right"><b style="font-size:22px;color:var(--accent)">${dias}</b><div class="muted small">días a ${esc(A.reto.corto||"tu reto")}</div></div>`:""}</div>`;
+  return `<div class="cab-bloque">📍 Bloque <b>${b.nombre}</b> · semana ${b.sem}${b.descarga?" · descarga":""}</div>
+    <div class="row between" style="align-items:flex-start"><div style="min-width:0"><h1>Hola${A.nombre?", "+esc(A.nombre):""}</h1><div id="sync" class="sync ${sync.cls}">${sync.txt}</div></div>
+    ${dias!=null?`<div class="cuenta"><b>${dias}</b><span>días para la<br>${esc(A.reto.nombre||A.reto.corto||"tu reto")}</span></div>`:""}</div>`;
 }
 function vOura(i,f,c){
   const o=OURA[f];
@@ -700,8 +711,7 @@ function vOura(i,f,c){
     </div>${escalas(c)}</div>`;
 }
 function escalas(c){
-  return `<div style="margin-top:12px"><label class="f">Piernas (1 = muy cargadas · 5 = frescas)</label>${escala("piernas",c.piernas)}</div>
-    <div style="margin-top:10px"><label class="f">Tobillo / rodilla (1 = molestan · 5 = perfectos)</label>${escala("tobillo",c.tobillo)}</div>`;
+  return `${barra("piernas","Fatiga de piernas",c.piernas)}${barra("tobillo","Dolor de tobillo / rodilla",c.tobillo)}`;
 }
 /* ---------- previsto vs hecho ---------- */
 // Une cada sesión de bici del día con la actividad de Strava de duración más parecida
@@ -799,6 +809,14 @@ function vHoy(){
     ${lista.some(x=>x.tipo==="fuerza")&&!r.terminada?`<p class="muted small" style="margin:6px 0 0;text-align:center">El resumen «previsto vs hecho» de la fuerza aparece al terminar.</p>`:""}
     ${fb?`<p class="small" style="color:var(--green)">✓ Guardado. ${esc(fb.sug||"")}</p>`:""}
   </div>`;
+}
+const NIVEL=["","Nada","Poca","Algo","Bastante","Mucha"];
+function barra(k,titulo,v){   // v guardado: 5 = perfecto · se muestra 6 − v (1 = nada, 5 = mucha)
+  const x=v?6-v:null;
+  return `<div class="barra ${x?"":"vacia"}" style="margin-top:12px"><div class="row between"><label class="f" style="margin:0">${titulo}</label>
+      <b class="barra-v" data-niv="${x||0}">${x?x+" · "+NIVEL[x]:"sin marcar"}</b></div>
+    <input type="range" min="1" max="5" step="1" value="${x||1}" data-rg="${k}">
+    <div class="row between muted small"><span>1 · nada</span><span>5 · mucha</span></div></div>`;
 }
 function escala(k,v){ return `<div class="scale">${[1,2,3,4,5].map(n=>`<button data-sc="${k}" data-v="${n}" class="${v===n?"on":""}">${n}</button>`).join("")}</div>`; }
 function vFuerza(s,r){
@@ -1224,8 +1242,11 @@ app.addEventListener("click",async e=>{
     UI.dia=k; UI.tab="hoy"; render(); window.scrollTo(0,0); }
 });
 app.addEventListener("keydown",e=>{ if(e.key==="Enter" && (e.target.id==="lpass"||e.target.id==="lemail")) document.getElementById("entrar")?.click(); });
+app.addEventListener("input",e=>{ const el=e.target; if(el.dataset.rg===undefined) return;
+  const x=+el.value, w=el.closest(".barra"); w.classList.remove("vacia"); const b=w.querySelector(".barra-v"); b.textContent=x+" · "+NIVEL[x]; b.dataset.niv=x; });
 app.addEventListener("change",e=>{
   const el=e.target, i=UI.dia;
+  if(el.dataset.rg!==undefined){ const r=tocar(i); r.checkin={...(r.checkin||{}),[el.dataset.rg]:6-(+el.value)}; saveReg(r.fecha); render(); return; }
   if(el.dataset.peso!==undefined){
     const ex=sesionVista().ej[+el.dataset.peso], r=tocar(i); r.pesos=r.pesos||{};
     const v=el.value.trim();

@@ -20,7 +20,9 @@ def ahora():
 
 
 def _cab(extra=None):
-    h = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
+    # KEY = "proxy": la clave la añade un proxy (secreto de red de Claude en la nube) y aquí no se ve.
+    h = {"Content-Type": "application/json"} if KEY == "proxy" else \
+        {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
     if extra:
         h.update(extra)
     return h

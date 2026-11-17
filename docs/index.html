@@ -145,6 +145,7 @@ nav button.on{color:var(--accent)}
 .kpi div{background:var(--card2);border-radius:12px;padding:9px 10px} .kpi b{display:block;font-size:17px} .kpi span{font-size:11.5px;color:var(--muted)}
 .up{color:var(--green)} .down{color:var(--red)}
 .concl li{margin:5px 0}
+.nota{border-color:#3dd6c655;background:#3dd6c60d} .nota p{margin:6px 0;font-size:14px} .nota ul{margin:4px 0;padding-left:18px}
 .forma .fila{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
 .forma .val{text-align:right;white-space:nowrap} .forma .val b{font-size:22px} .forma .val span{font-size:12px;color:var(--muted)}
 .forma .val.good b{color:var(--green)} .forma .val.mid b{color:var(--amber)} .forma .val.bad b{color:var(--red)}
@@ -438,6 +439,19 @@ function tocar(i){
 function actDia(f){ return ACT.filter(a=>{ const loc=a.raw&&a.raw.start_date_local; return (loc?loc.slice(0,10):iso(new Date(a.fecha)))===f; }); }
 
 /* ---------- motor de ajuste ---------- */
+const ALERTAS=[
+  {re:/fiebre|enferm|gripe|resfriad|catarro|covid|vomit|diarrea|mareo|mareado/, que:"malestar o enfermedad", nivel:2},
+  {re:/lesi[oó]n|pinchazo|chasquido|me he hecho da[nñ]o|cojeo|cojea/, que:"una posible lesión", nivel:2},
+  {re:/dolor|duele|dol[ií]a|molest|inflamad|hinchad/, que:"dolor o molestias", nivel:1},
+  {re:/agotad|reventad|destrozad|muy cansad|sin fuerza|vac[ií]o|pájara|pajara|fundid/, que:"mucho cansancio", nivel:1},
+  {re:/dorm[ií] mal|mal dormid|no he dormido|poco sue[nñ]o|insomnio|estr[eé]s/, que:"mal descanso o estrés", nivel:1}
+];
+function alertaComentario(t){
+  if(!t) return null;
+  if(/sin (dolor|molestias)|no (me )?(duele|molesta)|nada de dolor/.test(t)) t=t.replace(/sin (dolor|molestias)|no (me )?(duele|molesta)|nada de dolor/g,"");
+  const a=ALERTAS.find(x=>x.re.test(t)); if(!a) return null;
+  return {...a, tobillo:/tobillo|rodilla|aquiles|gemelo|s[oó]leo/.test(t) && /dolor|duele|molest|inflamad|hinchad/.test(t)};
+}
 function semaforo(i){
   const f=iso(fecha(i)), r=REG[f]||{}, c=r.checkin||{}, o=OURA[f];
   const fAyer=iso(masDias(fecha(i),-1)), ayer=(REG[fAyer]||{}).feedback, cuAyer=ayer&&ayer.cumpl;
@@ -450,7 +464,10 @@ function semaforo(i){
   const real = actDia(fAyer).reduce((t,a)=>t+(a.carga||0),0);
   const stravaMas = plan && real > plan*1.3 && real-plan>25;
   if(cuAyer==="mas" || (ayer && num(ayer.rpe)>=9) || stravaMas){ nivel++; motivos.push(stravaMas&&cuAyer!=="mas"?`ayer Strava marca más carga de la prevista (${Math.round(real)} vs ${plan})`:"ayer fue más duro de lo previsto"); }
-  const tobillo = c.tobillo && c.tobillo<=2;
+  // Comentario de ayer: palabras que indican dolor, enfermedad o agotamiento
+  const txtAyer=(ayer&&ayer.com||"").toLowerCase(), alerta=alertaComentario(txtAyer);
+  if(alerta){ nivel = Math.max(nivel+1, alerta.nivel); motivos.push(`tu comentario de ayer habla de ${alerta.que}`); }
+  const tobillo = (c.tobillo && c.tobillo<=2) || (alerta && alerta.tobillo);
   if(tobillo){ nivel=Math.max(nivel,1); motivos.push("tobillo con molestias"); }
   nivel=Math.min(nivel,2);
   const extra = nivel===0 && cuAyer==="menos" && (!c.piernas || c.piernas>=4);
@@ -715,7 +732,7 @@ function vSemana(){
   const cambiada=!!sm.dias || !!sm.segunda || (sm.orden||DEF_ORDEN).join()!==DEF_ORDEN.join();
   const selS = sel ? sesionesDia(sel.i)[sel.j] : null;
   const dura = l => l.some(x=>x.int==="alta");
-  return `${header()}<h2>Tu semana</h2>
+  return `${header()}${vNota()}<h2>Tu semana</h2>
   <div class="howto">${!sel
     ? "↕️ <b>Para mover un entreno:</b> toca <b>Mover</b> y luego el día donde lo quieres. Un día puede tener varias sesiones o ninguna.<br>👉 Toca un día para ver sus sesiones."
     : `Toca el día donde quieres poner <b>${selS?selS.titulo:""}</b> (o ✕ para cancelar).`}</div>
@@ -951,6 +968,13 @@ function informe(){
     ${coms.length?`<h3>📝 Tus comentarios</h3><ul>${coms.map(([D,c])=>`<li><span class="muted">${DIAS[(D.getDay()+6)%7]}:</span> ${esc(c)}</li>`).join("")}</ul>`:""}
   </details>`;
 }
+function vNota(){
+  const n=A.notaCoach; if(!n||!n.texto) return "";
+  const fd=n.fecha?new Date(n.fecha+"T00:00:00").toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"}):"";
+  return `<div class="card nota"><div class="row between"><h3>🧑‍🏫 Nota del coach</h3><span class="muted small">${fd}</span></div>
+    <div style="margin-top:8px">${esc(n.texto).split(/\n\s*\n/).map(p=>`<p>${p.replace(/\n/g,"<br>")}</p>`).join("")}</div>
+    ${(n.ajustes||[]).length?`<div class="small"><b>Ajustes para esta semana:</b><ul>${n.ajustes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}</div>`;
+}
 function vInfo(){
   const F=A.ftp, w=p=>Math.round(F*p), kg=A.peso||null;
   const ZP=[["Z1","Recuperación","#7f8a99",0,.55,"Soltar piernas. Hablas sin esfuerzo."],
@@ -963,7 +987,7 @@ function vInfo(){
   const zf=A.zonasFC||[Math.round(A.fc_umbral*.81),Math.round(A.fc_umbral*.89),Math.round(A.fc_umbral*.93),Math.round(A.fc_umbral*.99)];
   const ZF=[["Z1","Recuperación","#7f8a99",null,zf[0]],["Z2","Base aeróbica","#3dd6c6",zf[0],zf[1]],["Z3","Tempo","#3ecf72",zf[1]+1,zf[2]],["Z4","Umbral","#ff6a3d",zf[2]+1,zf[3]],["Z5","Máximo","#ff5a5a",zf[3]+1,null]];
   const B=A.bloques;
-  return `${header()}<h2>Información</h2><div class="info">
+  return `${header()}<h2>Información</h2>${vNota()}<div class="info">
   ${informe()}
   <details><summary>⚡ Tus zonas de potencia · FTP ${F} W${kg?` · ${fmtKg(Math.round(F/kg*10)/10)} W/kg`:""}</summary>
     <table class="tz">${ZP.map(([z,n,c,lo,hi,t])=>`<tr><td><i style="background:${c}"></i><b>${z} ${n}</b><div class="muted small">${t}</div></td><td>${lo?w(lo):0}${hi?"–"+w(hi):"+"} W<div class="muted small">${Math.round(lo*100)}${hi?"–"+Math.round(hi*100):"+"} %</div></td></tr>`).join("")}</table>

@@ -2,7 +2,7 @@
 -- El cron de GitHub a veces no se ejecuta. Supabase llama cada hora a GitHub para lanzar
 -- la sincronización (Oura + Strava + envío a Garmin). Gratis: pg_cron + pg_net + Vault.
 --
--- Uso: pégalo en Supabase → SQL Editor, cambia las DOS líneas marcadas con 👉 y pulsa Run.
+-- Uso: pégalo en Supabase → SQL Editor, cambia las DOS líneas marcadas con "CAMBIA" y pulsa Run.
 -- Se puede ejecutar más de una vez (p. ej. para cambiar la llave cuando caduque).
 -- La llave es un "fine-grained token" de GitHub con acceso solo a tu repositorio
 -- y permiso Actions: Read and write.
@@ -12,8 +12,8 @@ create extension if not exists pg_net;
 
 do $$
 declare
-  llave text := 'PEGA_AQUI_TU_LLAVE';                 -- 👉 tu llave github_pat_…
-  repo  text := 'arisdejuan/claude-coach';            -- 👉 tu usuario/repositorio de GitHub
+  llave text := 'PEGA_AQUI_TU_LLAVE';                 -- <- CAMBIA tu llave github_pat_…
+  repo  text := 'arisdejuan/claude-coach';            -- <- CAMBIA tu usuario/repositorio de GitHub
 begin
   -- Guarda (o actualiza) los datos en la caja fuerte de Supabase (Vault), cifrados
   if exists (select 1 from vault.secrets where name = 'github_llave') then

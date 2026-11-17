@@ -51,7 +51,7 @@ def datos():
         "lunes_esta_semana": L.isoformat(),
         "lunes_semana_siguiente": (L + dt.timedelta(days=7)).isoformat(),
         "nota": "Semanas: si no hay fila, se usa la semana tipo (fa,s1,pil,fb,s2,larga,com con z2 el día de fa). "
-                "registros: feedback (rpe, cumpl, com), checkin (piernas, tobillo 1-5), pesos reales, rpeEj, sets. "
+                "registros: feedback (rpe, cumpl, com), checkin (piernas y tobillo/rodilla de 1 a 5: 1 = molestan/cargadas, 5 = perfectos), pesos reales, rpeEj, sets. "
                 "actividades: carga = TSS estimado.",
         "atleta": atleta[0] if atleta else {},
         "semanas": leer("semanas", f"user_id=eq.{uid}&semana=gte.{(L - dt.timedelta(days=21)).isoformat()}&select=semana,datos&order=semana"),

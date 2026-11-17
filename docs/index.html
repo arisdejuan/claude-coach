@@ -253,6 +253,44 @@ function cargaPlan(s){
   return Math.round(t);
 }
 
+/* ---------- envío a Garmin (vía intervals.icu) ----------
+   La web guarda en "planificados" la bici de hoy y los próximos 7 días, ya ajustada.
+   GitHub la manda a intervals.icu cada 30 min, y intervals.icu la pasa a Garmin. */
+const lunesDe = d => masDias(d, -((d.getDay()+6)%7));
+function sesionFecha(d){
+  const L=lunesDe(d), i=Math.round((d-L)/864e5);
+  const s=EST.semanas[iso(L)]||{orden:[...DEF_ORDEN], comodin:"bici"}, id=s.orden[i];
+  return id==="com" ? {...COMODIN[s.comodin], id:"com-"+s.comodin, comodin:true} : {...SES[id], id};
+}
+const canon = v => Array.isArray(v) ? "["+v.map(canon).join(",")+"]"
+  : v && typeof v==="object" ? "{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+canon(v[k])).join(",")+"}"
+  : JSON.stringify(v===undefined?null:v);
+let PLAN={}, planTimer=null;           // PLAN[fecha] = {firma, enviado}
+function firmaPlan(x){ return canon({sesion:x.sesion, titulo:x.titulo, dur_min:x.dur_min, pasos:x.pasos, ftp:x.ftp, descripcion:x.descripcion}); }
+function programarPlan(){ clearTimeout(planTimer); planTimer=setTimeout(()=>publicarPlan(false),1500); }
+async function publicarPlan(forzar){
+  if(!USER || !SES.s1) return false;
+  const filas=[];
+  for(let k=0;k<8;k++){
+    const d=masDias(HOYD,k), f=iso(d);
+    const enSemana = d>=LUNES && d<masDias(LUNES,7);
+    const sem = enSemana ? semaforo((d.getDay()+6)%7) : {nivel:0, motivos:[], tobillo:false, extra:false};
+    const s = ajustar(sesionFecha(d), sem, f), bici = s.tipo==="bici";
+    const x = {sesion:bici?s.id:null, titulo:bici?s.titulo:null, dur_min:bici?s.dur:null,
+      pasos:bici?s.pasos.map(p=>({n:p.n, reps:p.reps, min:p.min, lo:p.lo, hi:p.hi, z:p.z, rec:p.rec??null, recW:p.recW??null})):null,
+      ftp:A.ftp, descripcion:bici&&s.cambios.length?s.cambios.join(" · "):null};
+    const firma=firmaPlan(x), prev=PLAN[f];
+    if(!forzar && prev && prev.firma===firma) continue;
+    if(!forzar && !prev && !bici) continue;              // nada que borrar
+    filas.push({user_id:USER.id, fecha:f, ...x, actualizado:new Date().toISOString(), enviado:null});
+  }
+  if(!filas.length) return true;
+  const {error}=await sb.from("planificados").upsert(filas);
+  if(error){ console.warn("planificados", error); return false; }
+  filas.forEach(fl=>{ PLAN[fl.fecha]={firma:firmaPlan(fl), enviado:null}; });
+  return true;
+}
+
 /* ---------- estado ---------- */
 let sb=null, USER=null;
 let EST={ semanas:{} }, REG={}, OURA={}, ACT=[];
@@ -284,7 +322,7 @@ async function escribir(clave){
   return false;
 }
 function persist(clave){
-  cacheSave(); pendientes.add(clave); guardarPend();
+  cacheSave(); pendientes.add(clave); guardarPend(); programarPlan();
   if(!USER) return;
   clearTimeout(timers[clave]);
   timers[clave]=setTimeout(()=>{
@@ -301,14 +339,15 @@ function saveReg(f){ REG[f].actualizado=new Date().toISOString(); persist("reg:"
 async function cargar(){
   setSync("Sincronizando…","");
   const desde=iso(masDias(HOYD,-150));
-  const [p,s,r,o,a] = await Promise.all([
+  const [p,s,r,o,a,pl] = await Promise.all([
     sb.from("atletas").select("nombre,perfil").maybeSingle(),
     sb.from("semanas").select("semana,datos").gte("semana", iso(masDias(LUNES,-28))),
     sb.from("registros").select("fecha,datos").gte("fecha", desde),
     sb.from("oura_diario").select("fecha,readiness,sueno_score,sueno_horas,vfc,fc_reposo,actualizado").gte("fecha", iso(masDias(HOYD,-21))),
-    sb.from("actividades").select("id,fecha,tipo,nombre,duracion_s,distancia_m,potencia_media,potencia_norm,fc_media,carga,raw").gte("fecha", masDias(HOYD,-120).toISOString()).order("fecha")
+    sb.from("actividades").select("id,fecha,tipo,nombre,duracion_s,distancia_m,potencia_media,potencia_norm,fc_media,carga,raw").gte("fecha", masDias(HOYD,-120).toISOString()).order("fecha"),
+    sb.from("planificados").select("fecha,sesion,titulo,dur_min,pasos,ftp,descripcion,enviado").gte("fecha", iso(HOYD))
   ]);
-  const err=[p,s,r,o,a].find(x=>x.error);
+  const err=[p,s,r,o,a,pl].find(x=>x.error);
   if(err){ console.warn(err.error); setSync("⚠️ No se pudo leer la nube: "+err.error.message,"err"); return; }
   if(p.data){ A={...A, ...(p.data.perfil||{}), nombre:p.data.nombre||A.nombre}; }
   construirSesiones();
@@ -320,8 +359,10 @@ async function cargar(){
   REG=reg;
   OURA={}; o.data.forEach(x=>{ OURA[x.fecha]=x; });
   ACT=a.data;
+  PLAN={}; pl.data.forEach(x=>{ PLAN[x.fecha]={firma:firmaPlan(x), enviado:x.enviado}; });
   cacheSave();
   reintentarPendientes();
+  programarPlan();
   setSync(pendientes.size?"⏳ Guardando…":"☁️ Sincronizado","ok");
   pintar();
 }
@@ -495,7 +536,7 @@ function vHoy(){
     <div class="row between"><div><h3>${ses.ico} ${ses.titulo}</h3><div class="muted small">${ses.sub}</div></div>
     <div style="text-align:right">${ses.dur?`<b>${ses.dur}'</b><br>`:""}<span class="pill ${ses.int}">${ses.int}</span></div></div>
     ${vStrava(f, ses)}
-    <div style="margin-top:10px">${ses.tipo==="fuerza"?vFuerza(ses,r):ses.tipo==="bici"?vBici(ses):`<p>${ses.texto}</p>`}</div>
+    <div style="margin-top:10px">${ses.tipo==="fuerza"?vFuerza(ses,r):ses.tipo==="bici"?vBici(ses,f):`<p>${ses.texto}</p>`}</div>
     ${ses.extra&&sem.nivel===0?`<p class="muted small">➕ ${ses.extra}</p>`:""}
     ${ses.nota?`<p class="muted small">🍌 ${ses.nota}</p>`:""}
   </div>
@@ -536,13 +577,15 @@ function vFuerza(s,r){
     return html;
   }).join("") + (warmDone?"":warm) + `<p class="muted small">Toca cada serie al terminarla. Deja el peso vacío si hiciste el previsto.</p>`;
 }
-function vBici(s){
+function vBici(s,f){
+  const pl=PLAN[f], estado = !pl||!pl.firma ? "" : pl.enviado ? `✓ En tu Garmin desde ${new Date(pl.enviado).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} · sincroniza el Edge` : "⏳ Preparado: llega a Garmin en menos de 30 min";
   const fmt=p=>p.lo===p.hi?`${p.lo}`:`${p.lo}-${p.hi}`;
   return s.pasos.map(p=>`<div class="step"><div class="zbar" style="background:${ZCOL[p.z]}"></div>
     <div><b>${p.reps>1?p.reps+" × "+p.min+"'":p.min+"'"} ${p.n}</b>
       <div class="muted small">${ZNOM[p.z]}${p.rec?` · recupera ${p.rec}' a ${p.recW} W`:""}</div></div>
     <div class="w"><b>${fmt(p)}</b><div class="muted small">vatios</div></div></div>`).join("")
-    + `<button class="btn ghost" style="margin-top:10px" data-garmin="1">⌚ Enviar a Garmin</button>`;
+    + `<button class="btn ghost" style="margin-top:10px" data-garmin="1">⌚ Enviar a Garmin</button>`
+    + (estado?`<p class="muted small" style="margin:6px 0 0;text-align:center">${estado}</p>`:"");
 }
 function vSemana(){
   const sel=UI.mover, sm=semana();
@@ -651,7 +694,8 @@ app.addEventListener("click",async e=>{
     const cur=num(r.pesos[ex.n]) ?? ex.kg, nuevo=r25(cur+parseFloat(d.delta));
     if(nuevo===ex.kg) delete r.pesos[ex.n]; else r.pesos[ex.n]=fmtKg(nuevo);
     saveReg(r.fecha); render(); return; }
-  if(d.garmin){ toast("Se activará cuando conectemos Garmin"); return; }
+  if(d.garmin){ b.disabled=true; const ok=await publicarPlan(true); b.disabled=false;
+    toast(ok?"Enviado: en menos de 30 min estará en tu Garmin":"No se pudo enviar. Reintenta en un momento"); render(); return; }
   if(b.id==="guardar"){
     const rpe=num(document.getElementById("rpe").value);
     const cumpl=(document.querySelector("[data-cu].on")||{}).dataset?.cu||"plan";

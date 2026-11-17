@@ -96,3 +96,22 @@ begin
     execute format('create policy "leer propio" on public.%I for select to authenticated using (user_id = auth.uid())', t);
   end loop;
 end $$;
+
+-- ===== Entrenos de bici planificados (la web los escribe; GitHub los manda a intervals.icu → Garmin) =====
+create table if not exists public.planificados (
+  user_id uuid not null references auth.users on delete cascade,
+  fecha date not null,
+  sesion text,                 -- id de la sesión (s1, s2, larga…) o null si ese día ya no hay bici
+  titulo text,
+  dur_min int,
+  pasos jsonb,                 -- [{n, reps, min, lo, hi, z, rec, recW}] en vatios
+  ftp int,
+  descripcion text,
+  actualizado timestamptz not null default now(),
+  enviado timestamptz,         -- cuándo se mandó a intervals.icu (null = pendiente)
+  primary key (user_id, fecha)
+);
+alter table public.planificados enable row level security;
+drop policy if exists "propio" on public.planificados;
+create policy "propio" on public.planificados for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());

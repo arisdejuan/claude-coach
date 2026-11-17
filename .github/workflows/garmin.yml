@@ -1,0 +1,27 @@
+name: Enviar entrenos a Garmin (intervals.icu)
+
+on:
+  schedule:
+    - cron: "*/30 4-21 * * *"   # cada 30 min de 5:00 a 23:00 (hora de Ámsterdam en invierno)
+  workflow_dispatch: {}
+
+concurrency:
+  group: garmin
+  cancel-in-progress: false
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+      COACH_EMAIL: ${{ secrets.COACH_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r sync/requirements.txt
+      - run: python sync/intervals.py

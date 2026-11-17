@@ -69,6 +69,20 @@ def guardar(tabla, filas, conflicto):
         raise RuntimeError(f"Supabase {tabla}: {r.status_code} {r.text[:300]}")
 
 
+def actualizar(tabla, filtro, datos):
+    r = peticion("PATCH", f"{URL}/rest/v1/{tabla}?{filtro}",
+                 headers=_cab({"Prefer": "return=minimal"}), json=datos)
+    if r.status_code >= 300:
+        raise RuntimeError(f"Supabase {tabla}: {r.status_code} {r.text[:300]}")
+
+
+def usuario_por_email(email):
+    r = peticion("GET", f"{URL}/auth/v1/admin/users?per_page=200", headers=_cab())
+    r.raise_for_status()
+    email = email.strip().lower()
+    return next((u for u in r.json().get("users", []) if (u.get("email") or "").lower() == email), None)
+
+
 def conexiones(servicio):
     return leer("conexiones", f"servicio=eq.{servicio}&select=*")
 

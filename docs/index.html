@@ -86,6 +86,9 @@ label.f{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 .day .d b{display:block;font-size:18px} .day .d span{font-size:11px;color:var(--muted);text-transform:uppercase}
 .day .body{flex:1;min-width:0}
 .day .ico{font-size:22px}
+.day{flex-wrap:wrap}
+.day .dos{flex-basis:100%;display:flex;gap:12px;align-items:center;padding:8px 0 0 56px;border-top:1px dashed var(--line)}
+.day .dos .ico{font-size:16px}
 .warn{color:var(--amber);font-size:12.5px;margin-top:3px}
 .bar{height:10px;background:var(--card2);border-radius:6px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:6px}
@@ -124,6 +127,17 @@ nav button.on{color:var(--accent)}
 .pila.fut{opacity:.28}
 .chart span.hoyc{color:var(--accent);font-weight:700}
 .explica{margin-top:10px;font-size:13.5px}
+.info details{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.info summary{font-weight:700;cursor:pointer;list-style:none} .info summary::-webkit-details-marker{display:none}
+.info summary::after{content:"›";float:right;color:var(--muted);transition:.2s} .info details[open] summary::after{transform:rotate(90deg)}
+.info p,.info li{font-size:13.5px} .info ul{padding-left:18px;margin:6px 0}
+.tz{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+.tz td{padding:7px 4px;border-top:1px solid var(--line);vertical-align:top} .tz td:last-child{text-align:right;white-space:nowrap;font-weight:700}
+.tz i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+.kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.kpi div{background:var(--card2);border-radius:12px;padding:9px 10px} .kpi b{display:block;font-size:17px} .kpi span{font-size:11.5px;color:var(--muted)}
+.up{color:var(--green)} .down{color:var(--red)}
+.concl li{margin:5px 0}
 .forma .fila{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
 .forma .val{text-align:right;white-space:nowrap} .forma .val b{font-size:22px} .forma .val span{font-size:12px;color:var(--muted)}
 .forma .val.good b{color:var(--green)} .forma .val.mid b{color:var(--amber)} .forma .val.bad b{color:var(--red)}
@@ -140,6 +154,7 @@ nav button.on{color:var(--accent)}
   <button data-tab="hoy" class="on"><i>⚡</i>Hoy</button>
   <button data-tab="semana"><i>📅</i>Semana</button>
   <button data-tab="progreso"><i>📈</i>Progreso</button>
+  <button data-tab="info"><i>ℹ️</i>Info</button>
 </div></nav>
 <div class="toast" id="toast"></div>
 
@@ -179,10 +194,11 @@ let A = {
   bloques:[["Base + fuerza","2026-11-16","nov-dic"],["Construcción","2027-01-04","ene-feb"],
            ["Específico","2027-02-15","feb-abr"],["Afinado","2027-04-10","abr"]]
 };
-function bloque(){
-  const B=A.bloques; let b=0; B.forEach((x,k)=>{ if(SEMKEY>=x[1]) b=k; });
+function bloque(){ return bloqueDe(LUNES); }
+function bloqueDe(Lu){
+  const B=A.bloques, K=iso(Lu); let b=0; B.forEach((x,k)=>{ if(K>=x[1]) b=k; });
   const ini=new Date(B[b][1]+"T00:00:00");
-  const sem=Math.max(1,Math.floor((LUNES-ini)/(7*864e5))+1);
+  const sem=Math.max(1,Math.floor((Lu-ini)/(7*864e5))+1);
   return {k:b, nombre:B[b][0], sem, descarga: sem%4===0};
 }
 
@@ -193,7 +209,6 @@ function construirSesiones(){
   const pct=(rm,p)=>r25(rm*p), F=A.ftp, w=p=>Math.round(F*p);
   SES = {
     fa:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza A", sub:"Pierna pesada + tobillo", dur:80, int:"alta",
-      extra:`Opcional por la tarde: rodillo Z2 45' a ${w(.6)}-${w(.69)} W`, extraCorto:"Tarde (opcional): rodillo Z2 45'",
       calentamiento:["Movilidad de tobillo en pared · 2 × 10 por lado","Cadera 90/90 · 2 × 5 por lado",
         "Puente de glúteo · 2 × 10","Sentadilla goblet con talones elevados y pausa abajo · 2 × 5"],
       ej:[
@@ -231,6 +246,9 @@ function construirSesiones(){
         {n:"Umbral", reps:4, min:6, lo:w(.99), hi:w(1.01), z:4, rec:4, recW:w(.54)},
         {n:"Vuelta a la calma", reps:1, min:12, lo:w(.51), hi:w(.57), z:1}
       ]},
+    z2:{ ico:"🚴", tipo:"bici", titulo:"Rodillo Z2", sub:"Opcional · fondo aeróbico", dur:45, int:"baja", opcional:true,
+      pasos:[{n:"Rodaje Z2", reps:1, min:45, lo:w(.6), hi:w(.69), z:2}],
+      nota:"Opcional: súmala el día que mejor te venga. Si las piernas no van, sáltala sin culpa."},
     larga:{ ico:"🚴", tipo:"bici", titulo:"Salida larga", sub:"Calle si el tiempo deja · Z2", dur:180, int:"media",
       pasos:[
         {n:"Rodaje Z2 constante", reps:1, min:170, lo:w(.6), hi:w(.71), z:2},
@@ -283,11 +301,19 @@ function sesionFecha(d){
   const s=EST.semanas[iso(L)]||{orden:[...DEF_ORDEN], comodin:"bici"}, id=s.orden[i];
   return id==="com" ? {...COMODIN[s.comodin], id:"com-"+s.comodin, comodin:true} : {...SES[id], id};
 }
+// Segunda sesión del día (p. ej. rodillo Z2 opcional). Por defecto va el día de la Fuerza A.
+function segundaDe(sm){ if(sm.segunda) return sm.segunda; const a=Array(7).fill(null), k=sm.orden.indexOf("fa"); a[k<0?0:k]="z2"; return a; }
+function segFecha(d){
+  const L=lunesDe(d), i=Math.round((d-L)/864e5);
+  const id=segundaDe(EST.semanas[iso(L)]||{orden:[...DEF_ORDEN], comodin:"bici"})[i];
+  return id&&SES[id] ? {...SES[id], id, segunda:true} : null;
+}
+const pasosPlan = s => s.pasos.map(p=>({n:p.n, reps:p.reps, min:p.min, lo:p.lo, hi:p.hi, z:p.z, rec:p.rec??null, recW:p.recW??null}));
 const canon = v => Array.isArray(v) ? "["+v.map(canon).join(",")+"]"
   : v && typeof v==="object" ? "{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+canon(v[k])).join(",")+"}"
   : JSON.stringify(v===undefined?null:v);
 let PLAN={}, planTimer=null;           // PLAN[fecha] = {firma, enviado}
-function firmaPlan(x){ return canon({sesion:x.sesion, titulo:x.titulo, dur_min:x.dur_min, pasos:x.pasos, ftp:x.ftp, descripcion:x.descripcion}); }
+function firmaPlan(x){ return canon({sesion:x.sesion, titulo:x.titulo, dur_min:x.dur_min, pasos:x.pasos, ftp:x.ftp, descripcion:x.descripcion, extra:x.extra||null}); }
 function programarPlan(){ clearTimeout(planTimer); planTimer=setTimeout(()=>publicarPlan(false),1500); }
 async function publicarPlan(forzar){
   if(!USER || !SES.s1) return false;
@@ -297,16 +323,19 @@ async function publicarPlan(forzar){
     const enSemana = d>=LUNES && d<masDias(LUNES,7);
     const sem = enSemana ? semaforo((d.getDay()+6)%7) : {nivel:0, motivos:[], tobillo:false, extra:false};
     const s = ajustar(sesionFecha(d), sem, f), bici = s.tipo==="bici";
+    const s2r=segFecha(d), s2=s2r?ajustar(s2r, sem, f):null, b2=!!s2&&s2.tipo==="bici";
     const x = {sesion:bici?s.id:null, titulo:bici?s.titulo:null, dur_min:bici?s.dur:null,
-      pasos:bici?s.pasos.map(p=>({n:p.n, reps:p.reps, min:p.min, lo:p.lo, hi:p.hi, z:p.z, rec:p.rec??null, recW:p.recW??null})):null,
-      ftp:A.ftp, descripcion:bici&&s.cambios.length?s.cambios.join(" · "):null};
+      pasos:bici?pasosPlan(s):null,
+      ftp:A.ftp, descripcion:bici&&s.cambios.length?s.cambios.join(" · "):null,
+      extra:b2?{sesion:s2.id, titulo:s2.titulo+(s2.opcional?" (opcional)":""), dur_min:s2.dur, pasos:pasosPlan(s2)}:null};
     const firma=firmaPlan(x), prev=PLAN[f];
     if(!forzar && prev && prev.firma===firma) continue;
-    if(!forzar && !prev && !bici) continue;              // nada que borrar
+    if(!forzar && !prev && !bici && !b2) continue;       // nada que borrar
     filas.push({user_id:USER.id, fecha:f, ...x, actualizado:new Date().toISOString(), enviado:null});
   }
   if(!filas.length) return true;
-  const {error}=await sb.from("planificados").upsert(filas);
+  let {error}=await sb.from("planificados").upsert(filas);
+  if(error && /extra/.test(error.message||"")) ({error}=await sb.from("planificados").upsert(filas.map(({extra,...r})=>r)));  // tabla aún sin columna extra
   if(error){ console.warn("planificados", error); return false; }
   filas.forEach(fl=>{ PLAN[fl.fecha]={firma:firmaPlan(fl), enviado:null}; });
   return true;
@@ -366,7 +395,7 @@ async function cargar(){
     sb.from("registros").select("fecha,datos").gte("fecha", desde),
     sb.from("oura_diario").select("fecha,readiness,sueno_score,sueno_horas,vfc,fc_reposo,actualizado").gte("fecha", iso(masDias(HOYD,-21))),
     sb.from("actividades").select("id,fecha,tipo,nombre,duracion_s,distancia_m,potencia_media,potencia_norm,fc_media,carga,raw").gte("fecha", masDias(HOYD,-120).toISOString()).order("fecha"),
-    sb.from("planificados").select("fecha,sesion,titulo,dur_min,pasos,ftp,descripcion,enviado").gte("fecha", iso(HOYD))
+    sb.from("planificados").select("*").gte("fecha", iso(HOYD))
   ]);
   const err=[p,s,r,o,a].find(x=>x.error);
   if(err){ console.warn(err.error); setSync("⚠️ No se pudo leer la nube: "+err.error.message,"err"); return; }
@@ -395,6 +424,7 @@ function sesionDe(i){
   const s=semana(), id=s.orden[i];
   return id==="com" ? {...COMODIN[s.comodin], id:"com-"+s.comodin, comodin:true} : {...SES[id], id};
 }
+function sesionSeg(i){ const id=segundaDe(semana())[i]; return id&&SES[id] ? {...SES[id], id, segunda:true} : null; }
 function tocar(i){
   const f=iso(fecha(i)), r=REG[f]||(REG[f]={fecha:f});
   const ses=ajustar(sesionDe(i), semaforo(i), f);
@@ -413,7 +443,7 @@ function semaforo(i){
   const motivos=[rd==null ? "Sin dato de Oura todavía" : `Recuperación Oura ${rd}`];
   if(c.piernas && c.piernas<=2){ nivel++; motivos.push("piernas cargadas"); }
   // Ayer: feedback o, si no hay, lo que dice Strava frente a lo previsto
-  const sAyer = i>0 ? sesionDe(i-1) : null, plan=cargaPlan(sAyer);
+  const sAyer = i>0 ? sesionDe(i-1) : null, s2Ayer = i>0 ? sesionSeg(i-1) : null, plan=(cargaPlan(sAyer)||0)+(cargaPlan(s2Ayer)||0);
   const real = actDia(fAyer).reduce((t,a)=>t+(a.carga||0),0);
   const stravaMas = plan && real > plan*1.3 && real-plan>25;
   if(cuAyer==="mas" || (ayer && num(ayer.rpe)>=9) || stravaMas){ nivel++; motivos.push(stravaMas&&cuAyer!=="mas"?`ayer Strava marca más carga de la prevista (${Math.round(real)} vs ${plan})`:"ayer fue más duro de lo previsto"); }
@@ -482,9 +512,9 @@ const ZNOM={1:"Z1 recuperación",2:"Z2 fondo",3:"Z3 tempo",4:"Z4 umbral",5:"Z5 V
 /* ---------- forma y fatiga (con Strava) ---------- */
 function pmc(){
   const carga={}; ACT.forEach(a=>{ const loc=a.raw&&a.raw.start_date_local; const f=loc?loc.slice(0,10):iso(new Date(a.fecha)); carga[f]=(carga[f]||0)+(a.carga||0); });
-  let ctl=0, atl=0; const ini=masDias(HOYD,-119);
-  for(let d=new Date(ini); d<=HOYD; d=masDias(d,1)){ const c=carga[iso(d)]||0; ctl+=(c-ctl)/42; atl+=(c-atl)/7; }
-  return {ctl:Math.round(ctl), atl:Math.round(atl), tsb:Math.round(ctl-atl), carga, hayDatos:ACT.length>0};
+  let ctl=0, atl=0; const ini=masDias(HOYD,-119), serie={};
+  for(let d=new Date(ini); d<=HOYD; d=masDias(d,1)){ const c=carga[iso(d)]||0; ctl+=(c-ctl)/42; atl+=(c-atl)/7; serie[iso(d)]={ctl:Math.round(ctl), atl:Math.round(atl)}; }
+  return {ctl:Math.round(ctl), atl:Math.round(atl), tsb:Math.round(ctl-atl), carga, serie, hayDatos:ACT.length>0};
 }
 
 /* ---------- volumen y qué estamos trabajando ----------
@@ -506,16 +536,19 @@ function semanaVol(L){
     const D=masDias(L,d), f=iso(D);
     const sem = estaSemana ? semaforo(d) : {nivel:0, motivos:[], tobillo:false, extra:false};
     const s = conPlan ? ajustar(sesionFecha(D), sem, f) : null;
+    const s2r = conPlan ? segFecha(D) : null, s2 = s2r ? ajustar(s2r, sem, f) : null;
     const r = REG[f]||{};
     // --- bici programada ---
     if(s && s.tipo==="bici"){ const m=minBici(s); V.plan.min+=s.dur; V.plan.carga+=cargaPlan(s)||0; Object.entries(m).forEach(([k,v])=>sumar(V.plan.cb,k,v)); }
-    if(s && s.extraCorto && sem.nivel===0) V.extra+=45;
+    if(s2 && s2.tipo==="bici"){ if(s2.opcional) V.extra+=s2.dur;
+      else { V.plan.min+=s2.dur; V.plan.carga+=cargaPlan(s2)||0; Object.entries(minBici(s2)).forEach(([k,v])=>sumar(V.plan.cb,k,v)); } }
     // --- bici hecha (Strava) ---
     actDia(f).filter(esBici).forEach(a=>{
       const min=(a.duracion_s||0)/60; V.hecho.min+=min; V.hecho.carga+=a.carga||0;
       const w=a.potencia_norm||a.potencia_media, IF=w?w/A.ftp:null;
       let dist=null;
-      if(s && s.tipo==="bici" && IF && min>=s.dur*0.5){ const pIF=Math.sqrt((cargaPlan(s)||0)/(s.dur/60)/100); if(Math.abs(IF-pIF)<=0.12) dist=minBici(s); }
+      if(IF) for(const c of [s,s2]){ if(!c||c.tipo!=="bici"||min<c.dur*0.5||min>c.dur*1.6) continue;
+        const pIF=Math.sqrt((cargaPlan(c)||0)/(c.dur/60)/100); if(Math.abs(IF-pIF)<=0.12){ dist=minBici(c); break; } }
       if(dist){ const tot=Object.values(dist).reduce((x,y)=>x+y,0)||1; Object.entries(dist).forEach(([k,v])=>sumar(V.hecho.cb,k,v/tot*min)); }
       else { V.estimado=true;
         let c="base"; if(IF) c=catPct(IF); else if(a.fc_media){ const x=a.fc_media/(A.fc_umbral||170); c=x<.89?"base":x<.94?"tempo":x<.97?"ss":x<=1.02?"umb":"vo2"; }
@@ -563,7 +596,7 @@ function render(){
   if(!USER) return;
   document.getElementById("nav").classList.remove("hidden");
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===UI.tab));
-  app.innerHTML = UI.tab==="hoy" ? vHoy() : UI.tab==="semana" ? vSemana() : vProgreso();
+  app.innerHTML = UI.tab==="hoy" ? vHoy() : UI.tab==="semana" ? vSemana() : UI.tab==="info" ? vInfo() : vProgreso();
 }
 function header(){
   const b=bloque();
@@ -605,6 +638,7 @@ function vStrava(f, ses){
 function vHoy(){
   const i=UI.dia, f=iso(fecha(i)), r=REG[f]||{}, c=r.checkin||{};
   const base=sesionDe(i), sem=semaforo(i), ses=ajustar(base, sem, f);
+  const segB=sesionSeg(i), seg=segB?ajustar(segB, sem, f):null;
   const txt=["Verde: entrena como está previsto","Ámbar: hoy bajamos un poco","Rojo: hoy toca recuperar"][sem.nivel];
   const cls=["verde","ambar","rojo"][sem.nivel];
   const fb=r.feedback;
@@ -620,9 +654,12 @@ function vHoy(){
     <div style="text-align:right">${ses.dur?`<b>${ses.dur}'</b><br>`:""}<span class="pill ${ses.int}">${ses.int}</span></div></div>
     ${vStrava(f, ses)}
     <div style="margin-top:10px">${ses.tipo==="fuerza"?vFuerza(ses,r):ses.tipo==="bici"?vBici(ses,f):`<p>${ses.texto}</p>`}</div>
-    ${ses.extra&&sem.nivel===0?`<p class="muted small">➕ ${ses.extra}</p>`:""}
     ${ses.nota?`<p class="muted small">🍌 ${ses.nota}</p>`:""}
   </div>
+  ${seg?`<div class="card"><div class="row between"><div><div class="muted small">➕ Segunda sesión${seg.opcional?" · opcional":""}</div><h3>${seg.ico} ${seg.titulo}</h3><div class="muted small">${seg.sub}</div></div>
+    <div style="text-align:right"><b>${seg.dur}'</b><br><span class="pill ${seg.int}">${seg.int}</span></div></div>
+    <div style="margin-top:10px">${seg.tipo==="bici"?vBici(seg,f,ses.tipo==="bici"):""}</div>
+    ${seg.nota?`<p class="muted small">💡 ${seg.nota}</p>`:""}</div>`:""}
   <div class="card"><h3>📝 Feedback del entreno</h3>
     <div style="margin-top:10px"><label class="f">¿Cómo ha ido?</label>
       <div class="seg">${[["plan","Según plan"],["menos","Menos"],["mas","Más duro"]].map(([k,t])=>`<button data-cu="${k}" class="${(fb&&fb.cumpl||"plan")===k?"on":""}">${t}</button>`).join("")}</div></div>
@@ -660,36 +697,39 @@ function vFuerza(s,r){
     return html;
   }).join("") + (warmDone?"":warm) + `<p class="muted small">Toca cada serie al terminarla. Deja el peso vacío si hiciste el previsto.</p>`;
 }
-function vBici(s,f){
+function vBici(s,f,sinBoton){
   const pl=PLAN[f], estado = !pl||!pl.firma ? "" : pl.enviado ? `✓ En tu Garmin desde ${new Date(pl.enviado).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} · sincroniza el Edge` : "⏳ Preparado: llega a Garmin en menos de 30 min";
   const fmt=p=>p.lo===p.hi?`${p.lo}`:`${p.lo}-${p.hi}`;
   return s.pasos.map(p=>`<div class="step"><div class="zbar" style="background:${ZCOL[p.z]}"></div>
     <div><b>${p.reps>1?p.reps+" × "+p.min+"'":p.min+"'"} ${p.n}</b>
       <div class="muted small">${ZNOM[p.z]}${p.rec?` · recupera ${p.rec}' a ${p.recW} W`:""}</div></div>
     <div class="w"><b>${fmt(p)}</b><div class="muted small">vatios</div></div></div>`).join("")
-    + `<button class="btn ghost" style="margin-top:10px" data-garmin="1">⌚ Enviar a Garmin</button>`
+    + (sinBoton?"":`<button class="btn ghost" style="margin-top:10px" data-garmin="1">⌚ Enviar a Garmin</button>`)
     + (estado?`<p class="muted small" style="margin:6px 0 0;text-align:center">${estado}</p>`:"");
 }
 function vSemana(){
-  const sel=UI.mover, sm=semana();
-  const cambiada=sm.orden.join()!==DEF_ORDEN.join();
+  const sel=UI.mover, sm=semana(), seg=segundaDe(sm);
+  const cambiada=sm.orden.join()!==DEF_ORDEN.join() || !!sm.segunda;
+  const selS = sel ? (sel.k==="p"?sesionDe(sel.i):sesionSeg(sel.i)) : null;
   return `${header()}<h2>Tu semana</h2>
-  <div class="howto">${sel===null
-    ? "↕️ <b>Para cambiar entrenos de día:</b> toca <b>Mover</b> en el entreno y luego el día al que lo quieres llevar. Se intercambian.<br>👉 Toca cualquier día para ver su sesión."
-    : `Ahora toca el día al que quieres llevar <b>${sesionDe(sel).titulo}</b> (o ✕ para cancelar).`}</div>
+  <div class="howto">${!sel
+    ? "↕️ <b>Para cambiar entrenos de día:</b> toca <b>Mover</b> en el entreno y luego el día al que lo quieres llevar. Se intercambian. La segunda sesión (➕) se mueve sola, sin tocar la principal.<br>👉 Toca cualquier día para ver su sesión."
+    : `Ahora toca el día al que quieres llevar <b>${selS?selS.titulo:""}</b> (o ✕ para cancelar).`}</div>
   ${sm.orden.map((id,i)=>{
-    const s=sesionDe(i), f=fecha(i), prev=i>0?sesionDe(i-1):null;
+    const s=sesionDe(i), s2=sesionSeg(i), f=fecha(i), prev=i>0?sesionDe(i-1):null;
     const movido=sm.orden[i]!==DEF_ORDEN[i] || (i>0 && sm.orden[i-1]!==DEF_ORDEN[i-1]);
     const aviso=movido && prev && prev.int==="alta" && s.int==="alta" ? `<div class="warn">⚠️ Dos días duros seguidos: el sistema bajará un poco el segundo</div>`:"";
     const fb=(REG[iso(f)]||{}).feedback, acts=actDia(iso(f));
-    return `<div class="day ${i===HOY?"today":""} ${sel===i?"sel":""} ${sel!==null&&sel!==i?"target":""}" data-dia="${i}">
+    const esSel=k=>sel&&sel.k===k&&sel.i===i;
+    return `<div class="day ${i===HOY?"today":""} ${esSel("p")||esSel("s")?"sel":""} ${sel&&sel.i!==i?"target":""}" data-dia="${i}">
       <div class="d"><span>${DIAS[i]}</span><b>${f.getDate()}</b></div>
       <div class="ico">${s.ico}</div>
       <div class="body"><b>${s.titulo}</b><div class="muted small">${s.sub}${s.dur?` · ${s.dur}'`:""}</div>${aviso}
-        ${s.extraCorto?`<div class="small" style="color:var(--accent2)">➕ ${s.extraCorto}</div>`:""}
         ${fb?`<div class="small" style="color:var(--green)">✓ Hecho · RPE ${esc(fb.rpe||"–")}</div>`:""}
         ${acts.map(a=>`<div class="small" style="color:var(--strava)">● ${hm(a.duracion_s||0)}${a.potencia_norm?` · ${Math.round(a.potencia_norm)} W`:""}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}</div>`).join("")}</div>
-      <button class="btn ghost small" data-mover="${i}">${sel===i?"✕":"↕ Mover"}</button>
+      <button class="btn ghost small" data-mover="${i}">${esSel("p")?"✕":"↕ Mover"}</button>
+      ${s2?`<div class="dos"><span class="ico">➕</span><div class="body"><b>${s2.titulo}</b><div class="muted small">${s2.sub} · ${s2.dur}'</div></div>
+        <button class="btn ghost small" data-mover2="${i}">${esSel("s")?"✕":"↕ Mover"}</button></div>`:""}
     </div>`; }).join("")}
   ${cambiada?`<button class="btn ghost" data-resetsem="1">Volver al orden original</button>`:""}
   ${vVolumen(semanaVol(LUNES))}
@@ -832,6 +872,132 @@ function vProgreso(){
   <button class="btn ghost" id="salir" style="margin-top:8px">Cerrar sesión</button>`;
 }
 
+
+/* ---------- pestaña Info ---------- */
+const media = a => { const v=a.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((x,y)=>x+y,0)/v.length:null; };
+const f1 = v => v==null?"–":fmtKg(Math.round(v*10)/10);
+function delta(a,b,mejorSube=true,u=""){ if(a==null||b==null) return ""; const d=Math.round((a-b)*10)/10; if(!d) return `<span class="muted"> = </span>`;
+  const bien = mejorSube ? d>0 : d<0; return ` <span class="${bien?"up":"down"}">${d>0?"▲ +":"▼ "}${fmtKg(d)}${u}</span>`; }
+function informe(){
+  const domingo = HOY===6, L = domingo ? LUNES : masDias(LUNES,-7), Lp = masDias(L,-7), fin = masDias(L,6);
+  if(iso(L) < A.bloques[0][1]){ const dom=masDias(LUNES,6);
+    return `<details open><summary>📋 Informe semanal</summary><p class="small">El primer informe sale el <b>domingo ${dom.toLocaleDateString("es-ES",{day:"numeric",month:"long"})}</b>, al cerrar tu primera semana con el sistema. Juntará tus entrenos (Strava + feedback) con las métricas de Oura y te dirá cómo vas y qué viene.</p></details>`; }
+  const dias = [...Array(7)].map((_,d)=>masDias(L,d)), diasP=[...Array(7)].map((_,d)=>masDias(Lp,d));
+  const V = semanaVol(L);
+  // sesiones
+  let plan=0, hechas=0, opc=0, opcH=0; const rpes=[], coms=[];
+  dias.forEach(D=>{ const f=iso(D), s=sesionFecha(D), s2=segFecha(D), r=REG[f]||{}, bicis=actDia(f).filter(esBici).length;
+    if(s && s.titulo!=="Descanso"){ plan++;
+      const hecho = r.feedback || (s.tipo==="bici" ? bicis>0 : Object.values(r.sets||{}).some(Boolean));
+      if(hecho) hechas++; }
+    if(s2){ if(s2.opcional){ opc++; if(bicis > (s&&s.tipo==="bici"?1:0)) opcH++; } }
+    const fb=r.feedback; if(fb){ if(num(fb.rpe)!=null) rpes.push(num(fb.rpe)); if(fb.com) coms.push([D,fb.com]); } });
+  // Oura
+  const ou = ds => { const o=ds.map(D=>OURA[iso(D)]).filter(Boolean); return {rd:media(o.map(x=>x.readiness)), su:media(o.map(x=>x.sueno_horas)), hrv:media(o.map(x=>x.vfc)), fc:media(o.map(x=>x.fc_reposo)), n:o.length}; };
+  const O=ou(dias), Op=ou(diasP);
+  // forma
+  const P=pmc(), hasta=iso(fin>HOYD?HOYD:fin), a=P.serie[hasta], b=P.serie[iso(masDias(L,-1))];
+  // pesos de los básicos
+  const lifts={};
+  dias.forEach(D=>{ const f=iso(D), r=REG[f]; if(!r||!r.plan) return;
+    Object.keys(r.plan).forEach(n=>{ const kg=num((r.pesos||{})[n]) ?? num(r.plan[n]); if(kg==null) return;
+      const ant=Object.keys(REG).filter(x=>x<iso(L) && REG[x].ses===r.ses && REG[x].plan && REG[x].plan[n]!=null).sort().pop();
+      const kgA = ant ? (num((REG[ant].pesos||{})[n]) ?? num(REG[ant].plan[n])) : null;
+      lifts[n]={kg, rpe:num((r.rpeEj||{})[n]), ant:kgA}; }); });
+  // peso corporal
+  const pc=Object.keys(REG).filter(x=>num(REG[x].pesoCorporal)!=null).sort();
+  const pIn=pc.filter(x=>x>=iso(L)&&x<=iso(fin)).pop(), pAnt=pc.filter(x=>x<iso(L)).pop();
+  // conclusiones
+  const C=[], cumpl=plan?hechas/plan:0, tsb=a?a.ctl-a.atl:null;
+  C.push(cumpl>=.85?`✅ Semana cumplida: ${hechas} de ${plan} sesiones.`:cumpl>=.6?`🟡 Semana a medias: ${hechas} de ${plan} sesiones. Prioriza las clave (fuerza y series) sobre el volumen.`:`🔴 Semana corta: ${hechas} de ${plan} sesiones. Si fue por trabajo o viaje, no compenses de golpe.`);
+  if(V.plan.carga && V.hecho.carga>V.plan.carga*1.15) C.push(`⚠️ Hiciste más carga de bici de la prevista (${Math.round(V.hecho.carga)} vs ${Math.round(V.plan.carga)} puntos). Vigila la fatiga.`);
+  if(O.rd!=null && Op.rd!=null && O.rd < Op.rd-5) C.push(`💤 Tu recuperación de Oura baja (${Math.round(O.rd)} vs ${Math.round(Op.rd)}). Duerme y come bien antes de apretar.`);
+  if(O.hrv!=null && Op.hrv!=null && O.hrv < Op.hrv*0.9) C.push(`📉 La VFC cae un ${Math.round((1-O.hrv/Op.hrv)*100)} %: señal de fatiga o estrés.`);
+  if(O.su!=null && O.su<7) C.push(`🛌 Duermes de media ${f1(O.su)} h. Por debajo de 7 h cuesta más asimilar la carga.`);
+  if(O.rd!=null && O.rd>=80 && cumpl>=.85) C.push("💪 Buena recuperación con la semana completa: el cuerpo asimila bien.");
+  if(tsb!=null && tsb<-25) C.push(`🔋 Frescura ${tsb}: fatiga alta. La próxima semana, sin extras.`);
+  if(a&&b&&a.ctl>b.ctl) C.push(`📈 Tu forma sube de ${b.ctl} a ${a.ctl} puntos/día.`);
+  const sube=Object.entries(lifts).filter(([n,x])=>x.ant!=null&&x.kg>x.ant).map(([n])=>n.toLowerCase());
+  if(sube.length) C.push(`🏋️ Subes peso en ${sube.join(", ")}.`);
+  const sig=bloqueDe(masDias(L,7));
+  const proxima = sig.descarga ? "La próxima es <b>semana de descarga</b>: menos volumen para asimilar." : `La próxima: ${sig.nombre}, semana ${sig.sem}. ${opc&&!opcH?"Si te encuentras bien, mete la Z2 opcional.":""}`;
+  const fmtD=D=>D.toLocaleDateString("es-ES",{day:"numeric",month:"short"});
+  return `<details open><summary>📋 Informe semanal · ${fmtD(L)} – ${fmtD(fin)}</summary>
+    <p class="muted small" style="margin:6px 0 0">${domingo?"Semana en curso: se cierra hoy domingo.":"Se actualiza cada domingo con la semana que termina."} Compara con la semana anterior.</p>
+    <div class="kpi">
+      <div><b>${hechas}/${plan}</b><span>Sesiones hechas${opc?` · opcional ${opcH}/${opc}`:""}</span></div>
+      <div><b>${rpes.length?f1(media(rpes)):"–"}</b><span>RPE medio</span></div>
+      <div><b>${fmtMin(V.hecho.min)}</b><span>Bici (de ${fmtMin(V.plan.min)})</span></div>
+      <div><b>${Math.round(V.hecho.carga)}</b><span>Carga bici (de ${Math.round(V.plan.carga)})</span></div>
+      <div><b>${V.hecho.series}</b><span>Series de fuerza (de ${V.plan.series})</span></div>
+      <div><b>${Math.round(V.hecho.ton).toLocaleString("es-ES")} kg</b><span>Kilos movidos</span></div>
+    </div>
+    <h3>💤 Oura (media de la semana)</h3>
+    ${O.n?`<div class="kpi">
+      <div><b>${f1(O.rd)}${delta(O.rd,Op.rd)}</b><span>Recuperación</span></div>
+      <div><b>${f1(O.su)} h${delta(O.su,Op.su,true," h")}</b><span>Sueño</span></div>
+      <div><b>${f1(O.hrv)}${delta(O.hrv,Op.hrv)}</b><span>VFC (ms)</span></div>
+      <div><b>${f1(O.fc)}${delta(O.fc,Op.fc,false)}</b><span>FC en reposo</span></div></div>`:`<p class="muted small">Sin datos de Oura esta semana.</p>`}
+    ${a?`<h3>📈 Forma</h3><p class="small" style="margin:6px 0">Forma ${b?b.ctl+" → ":""}<b>${a.ctl}</b> puntos/día · fatiga ${a.atl} · frescura ${tsb>0?"+":""}${tsb}</p>`:""}
+    ${Object.keys(lifts).length?`<h3>🏋️ Básicos</h3><table class="tz">${Object.entries(lifts).map(([n,x])=>`<tr><td>${esc(n)}${x.rpe!=null?` <span class="muted">· RPE ${fmtKg(x.rpe)}</span>`:""}</td><td>${fmtKg(x.kg)} kg${x.ant!=null?delta(x.kg,x.ant,true," kg"):""}</td></tr>`).join("")}</table>`:""}
+    ${pIn?`<p class="small">⚖️ Peso: <b>${esc(REG[pIn].pesoCorporal)} kg</b>${pAnt?delta(num(REG[pIn].pesoCorporal),num(REG[pAnt].pesoCorporal),false," kg"):""}</p>`:""}
+    <h3 style="margin-top:12px">🧭 Conclusiones</h3><ul class="concl">${C.map(x=>`<li>${x}</li>`).join("")}</ul>
+    <p class="small">➡️ ${proxima}</p>
+    ${coms.length?`<h3>📝 Tus comentarios</h3><ul>${coms.map(([D,c])=>`<li><span class="muted">${DIAS[(D.getDay()+6)%7]}:</span> ${esc(c)}</li>`).join("")}</ul>`:""}
+  </details>`;
+}
+function vInfo(){
+  const F=A.ftp, w=p=>Math.round(F*p), kg=A.peso||null;
+  const ZP=[["Z1","Recuperación","#7f8a99",0,.55,"Soltar piernas. Hablas sin esfuerzo."],
+    ["Z2","Base aeróbica","#3dd6c6",.56,.75,"Fondo. Puedes hablar con frases largas. Es la base de Mallorca."],
+    ["Z3","Tempo","#3ecf72",.76,.87,"Ritmo alegre sostenido. Frases cortas."],
+    ["SS","Sweet spot","#f4b740",.88,.94,"Mucho estímulo con fatiga controlable. Hablar cuesta."],
+    ["Z4","Umbral","#ff6a3d",.95,1.05,"Tu FTP: lo que aguantarías ~1 h a tope. Solo palabras sueltas."],
+    ["Z5","VO2 máx.","#ff5a5a",1.06,1.20,"Series de 3-8'. Muy duro."],
+    ["Z6","Anaeróbico","#c94cff",1.21,null,"Esfuerzos de menos de 2'. Ataques y repechos."]];
+  const zf=A.zonasFC||[Math.round(A.fc_umbral*.81),Math.round(A.fc_umbral*.89),Math.round(A.fc_umbral*.93),Math.round(A.fc_umbral*.99)];
+  const ZF=[["Z1","Recuperación","#7f8a99",null,zf[0]],["Z2","Base aeróbica","#3dd6c6",zf[0],zf[1]],["Z3","Tempo","#3ecf72",zf[1]+1,zf[2]],["Z4","Umbral","#ff6a3d",zf[2]+1,zf[3]],["Z5","Máximo","#ff5a5a",zf[3]+1,null]];
+  const B=A.bloques;
+  return `${header()}<h2>Información</h2><div class="info">
+  ${informe()}
+  <details><summary>⚡ Tus zonas de potencia · FTP ${F} W${kg?` · ${fmtKg(Math.round(F/kg*10)/10)} W/kg`:""}</summary>
+    <table class="tz">${ZP.map(([z,n,c,lo,hi,t])=>`<tr><td><i style="background:${c}"></i><b>${z} ${n}</b><div class="muted small">${t}</div></td><td>${lo?w(lo):0}${hi?"–"+w(hi):"+"} W<div class="muted small">${Math.round(lo*100)}${hi?"–"+Math.round(hi*100):"+"} %</div></td></tr>`).join("")}</table>
+    <p class="muted small">En el rodillo el Edge marca estos vatios solo (modo ERG). Si cambia tu FTP, todo se recalcula.</p></details>
+  <details><summary>❤️ Tus zonas de pulso</summary>
+    <table class="tz">${ZF.map(([z,n,c,lo,hi])=>`<tr><td><i style="background:${c}"></i><b>${z} ${n}</b></td><td>${lo==null?"< "+hi:hi==null?"> "+(lo-1):lo+"–"+hi} ppm</td></tr>`).join("")}</table>
+    <p class="muted small">El pulso va con retraso y sube con calor, cansancio o café: en bici manda la potencia; el pulso sirve para confirmar y para la cinta.</p></details>
+  <details><summary>🚴 Qué trabajamos en la bici</summary>
+    <ul>
+      <li><b>Base aeróbica (Z1-Z2)</b>: crea mitocondrias y capilares y enseña al cuerpo a quemar grasa. Es lo que te lleva 226 km sin pájara. ~75-80 % del tiempo total.</li>
+      <li><b>Tempo (Z3)</b>: ritmo de puerto largo. Útil en bloques específicos; en exceso cansa sin dar mucho.</li>
+      <li><b>Sweet spot (88-94 % FTP)</b>: la mejor relación estímulo/fatiga para subir el FTP. Bloques de 10-20'.</li>
+      <li><b>Umbral (95-105 %)</b>: sube directamente tu FTP. Series de 6-15'.</li>
+      <li><b>VO2 / anaeróbico</b>: techo aeróbico y cambios de ritmo. Poca dosis y bien recuperado.</li>
+    </ul><p class="muted small">Regla del bloque base: mucho Z2, algo de sweet spot/umbral y casi nada de VO2.</p></details>
+  <details><summary>🏋️ Qué trabajamos en fuerza</summary>
+    <ul>
+      <li><b>Fuerza máxima</b> (1-5 reps, 80-90 % del máximo, descansos 2-3'): más fuerza sin ganar peso. Mejora la economía del pedaleo y protege rodilla y espalda. Sentadilla, peso muerto, press, dominadas.</li>
+      <li><b>Fuerza-hipertrofia</b> (6-12 reps): algo de músculo y trabajo a una pierna para equilibrar lados. Búlgara, rumano a una pierna, puente.</li>
+      <li><b>Tendón y tobillo</b> (isometrías, sóleo, gemelo, movilidad, equilibrio): pone fuerte el tendón y el tobillo operado sin impactos. Clave para volver a correr y para el esquí.</li>
+      <li><b>Core y estabilidad</b> (dead bug, pallof, copenhague, planchas): tronco estable = más vatios a la biela y menos dolor lumbar en 8-9 h de bici.</li>
+    </ul><p class="muted small">Siempre a RPE 7-8 (2-3 reps en reserva) y sin fallo: así ganas fuerza sin quitarle piernas a la bici.</p></details>
+  <details><summary>📏 Escala RPE (esfuerzo percibido)</summary>
+    <table class="tz">${[["10","Máximo, no sale otra"],["9","Quedaba 1 rep"],["8","Quedaban 2"],["7","Quedaban 3, velocidad buena"],["5-6","Cómodo, calentamiento"],["1-4","Muy suave"]].map(([a,b])=>`<tr><td>${b}</td><td>${a}</td></tr>`).join("")}</table></details>
+  <details><summary>🧠 Cómo decide el sistema</summary>
+    <ul>
+      <li><b>Semáforo diario</b>: recuperación de Oura (≥80 verde, 65-79 ámbar, <65 rojo) + piernas + tobillo + cómo fue ayer (tu feedback o Strava). Ámbar: una serie menos y −5 % de peso / −3 % de vatios. Rojo: movilidad o rodaje suave.</li>
+      <li><b>Pesos que aprenden</b>: RPE ≤7,5 → +2,5 kg la próxima vez · RPE 8-9 → mismo peso · RPE ≥9,5 → −2,5 kg. Manda el RPE del ejercicio sobre el de la sesión.</li>
+      <li><b>Descarga</b>: cada 4.ª semana, −10 % de peso y una serie menos.</li>
+      <li><b>Bloques</b>: ${B.map(x=>`${x[0]} (${x[2]})`).join(" → ")}. Cada uno en ciclos de 3 semanas de carga + 1 de descarga.</li>
+    </ul></details>
+  <details><summary>🍌 Comer y beber en salidas largas</summary>
+    <ul><li>Más de 2 h: <b>60-90 g de hidratos por hora</b> (gel ≈ 25 g, plátano ≈ 25 g, barrita ≈ 40 g). Empieza en el minuto 30.</li>
+      <li>Bebe <b>500-750 ml por hora</b>, con sales si hace calor.</li>
+      <li>Entrena el estómago en las salidas largas: lo que pruebes es lo que usarás en Mallorca. Ajústalo con tu nutricionista.</li></ul></details>
+  <details><summary>⌚ Cómo llegan los entrenos al Garmin</summary>
+    <p>La web prepara la bici de hoy y de los próximos 7 días ya ajustada. Cada hora se envía a intervals.icu, que la pasa a Garmin Connect. Sincroniza el Edge y la tendrás en <b>Entrenamiento → Entrenamientos</b>. Si mueves una sesión, el cambio llega solo.</p></details>
+  </div>`;
+}
 /* ---------- login ---------- */
 function vLogin(msg){
   document.getElementById("nav").classList.add("hidden");
@@ -884,12 +1050,16 @@ app.addEventListener("click",async e=>{
   if(b.id==="gpeso"){ const v=document.getElementById("pesoCorp").value.trim(); if(!v) return;
     const f=iso(HOYD), r=REG[f]||(REG[f]={fecha:f}); r.pesoCorporal=v; saveReg(f); render(); toast("Peso guardado"); return; }
   if(d.meso){ UI.meso=d.meso; render(); return; }
-  if(d.resetsem){ const s=clone(semana()); s.orden=[...DEF_ORDEN]; setSemana(s); render(); toast("Orden original"); return; }
-  if(d.mover!==undefined){ e.stopPropagation(); const k=+d.mover; UI.mover=UI.mover===k?null:k; render(); return; }
+  if(d.resetsem){ const s=clone(semana()); s.orden=[...DEF_ORDEN]; delete s.segunda; setSemana(s); render(); toast("Orden original"); return; }
+  if(d.mover!==undefined||d.mover2!==undefined){ e.stopPropagation(); const t=d.mover!==undefined?"p":"s", k=+(d.mover??d.mover2);
+    UI.mover=(UI.mover&&UI.mover.k===t&&UI.mover.i===k)?null:{k:t,i:k}; render(); return; }
   if(d.dia!==undefined){
     const k=+d.dia;
-    if(UI.mover!==null){
-      if(UI.mover!==k){ const s=clone(semana()); [s.orden[UI.mover],s.orden[k]]=[s.orden[k],s.orden[UI.mover]]; setSemana(s); toast(`Movido al ${DIAS[k].toLowerCase()}`); }
+    if(UI.mover){
+      const {k:t,i:o}=UI.mover;
+      if(o!==k){ const s=clone(semana()); s.segunda=[...segundaDe(s)];
+        if(t==="p") [s.orden[o],s.orden[k]]=[s.orden[k],s.orden[o]]; else [s.segunda[o],s.segunda[k]]=[s.segunda[k],s.segunda[o]];
+        setSemana(s); toast(`Movido al ${DIAS[k].toLowerCase()}`); }
       UI.mover=null; render(); return; }
     UI.dia=k; UI.tab="hoy"; render(); window.scrollTo(0,0); }
 });

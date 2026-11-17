@@ -115,3 +115,5 @@ alter table public.planificados enable row level security;
 drop policy if exists "propio" on public.planificados;
 create policy "propio" on public.planificados for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- Segunda sesión del día (p. ej. rodillo Z2 opcional), también se manda a Garmin
+alter table public.planificados add column if not exists extra jsonb;

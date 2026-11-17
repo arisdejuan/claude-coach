@@ -64,33 +64,43 @@ def main():
     r.raise_for_status()
     nuestros = {e.get("external_id"): e for e in r.json() if (e.get("external_id") or "").startswith("coach-")}
 
-    for f in filas:
-        ext = f"coach-{f['fecha']}"
+    def evento(ext, fecha, w, nota):
+        """Crea, actualiza o borra (w = None) el evento de intervals.icu con ese external_id."""
         existente = nuestros.get(ext)
-        if not f.get("sesion"):
+        if not w or not w.get("sesion"):
             if existente:
                 peticion("DELETE", f"{API}/events/{existente['id']}", auth=auth()).raise_for_status()
-                print(f"Intervals 🗑  {f['fecha']}: ya no hay bici, borrado")
+                print(f"Intervals 🗑  {ext}: ya no toca, borrado")
+            return True
+        ev = {
+            "category": "WORKOUT",
+            "type": "VirtualRide" if w["sesion"] in ("s1", "s2", "z2") else "Ride",
+            "start_date_local": f"{fecha}T00:00:00",
+            "name": w["titulo"],
+            "description": texto_entreno(w["pasos"], w.get("ftp") or 350, nota),
+            "external_id": ext,
+        }
+        if w.get("dur_min"):
+            ev["moving_time"] = int(w["dur_min"]) * 60
+        if existente:
+            resp = peticion("PUT", f"{API}/events/{existente['id']}", auth=auth(), json=ev)
         else:
-            evento = {
-                "category": "WORKOUT",
-                "type": "VirtualRide" if f["sesion"] in ("s1", "s2") else "Ride",
-                "start_date_local": f"{f['fecha']}T00:00:00",
-                "name": f["titulo"],
-                "description": texto_entreno(f["pasos"], f.get("ftp") or 350, f.get("descripcion")),
-                "external_id": ext,
-            }
-            if f.get("dur_min"):
-                evento["moving_time"] = int(f["dur_min"]) * 60
-            if existente:
-                resp = peticion("PUT", f"{API}/events/{existente['id']}", auth=auth(), json=evento)
-            else:
-                resp = peticion("POST", f"{API}/events", auth=auth(), json=evento)
-            if resp.status_code >= 300:
-                print(f"Intervals ✗ {f['fecha']}: {resp.status_code} {resp.text[:300]}")
-                continue
-            print(f"Intervals ✓ {f['fecha']}: {f['titulo']}")
-        actualizar("planificados", f"user_id=eq.{u['id']}&fecha=eq.{f['fecha']}", {"enviado": ahora()})
+            resp = peticion("POST", f"{API}/events", auth=auth(), json=ev)
+        if resp.status_code >= 300:
+            print(f"Intervals ✗ {ext}: {resp.status_code} {resp.text[:300]}")
+            return False
+        print(f"Intervals ✓ {fecha}: {w['titulo']}")
+        return True
+
+    for f in filas:
+        principal = f if f.get("sesion") else None
+        extra = f.get("extra")  # segunda sesión del día (p. ej. rodillo Z2 opcional)
+        if extra:
+            extra = {**extra, "ftp": f.get("ftp")}
+        ok1 = evento(f"coach-{f['fecha']}", f["fecha"], principal, f.get("descripcion"))
+        ok2 = evento(f"coach-{f['fecha']}-2", f["fecha"], extra, None)
+        if ok1 and ok2:
+            actualizar("planificados", f"user_id=eq.{u['id']}&fecha=eq.{f['fecha']}", {"enviado": ahora()})
 
 
 if __name__ == "__main__":

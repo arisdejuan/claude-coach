@@ -127,6 +127,9 @@ label.f{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 .howto{background:#5aa8ff14;border:1px solid #5aa8ff44;border-radius:12px;padding:10px 12px;font-size:13.5px;margin-bottom:12px}
 .login{max-width:380px;margin:12vh auto 0}
 .login .card{padding:20px}
+.login a{color:var(--accent2)}
+.consent{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.35}
+.consent input{width:auto;margin-top:2px;flex:none}
 nav{position:fixed;bottom:0;left:0;right:0;background:#0e1116ee;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);
   display:flex;justify-content:center;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
 nav .in{display:flex;max-width:520px;width:100%}
@@ -216,6 +219,8 @@ let A = {
   bloques:[["Base + fuerza","2026-11-16","nov-dic"],["Construcción","2027-01-04","ene-feb"],
            ["Específico","2027-02-15","feb-abr"],["Afinado","2027-04-10","abr"]]
 };
+// Plan propio guardado en el perfil (atletas con «solo fuerza» dados de alta con su Claude)
+const PROPIO = () => !!(A.plan && A.plan.sesiones);
 function bloque(){ return bloqueDe(LUNES); }
 // Ciclos de 3 semanas de carga + 1 de descarga. Una semana con 3+ días fuera (viaje, vacaciones…) cuenta como
 // descarga y reinicia el ciclo; si la descarga toca justo antes de una semana fuera, se aplaza para que coincidan.
@@ -273,7 +278,25 @@ function adaptarAus(lista, au){
 /* ---------- plantilla de sesiones ---------- */
 let SES={}, COMODIN={};
 const DEF_ORDEN = ["fa","s1","pil","fb","s2","larga","com"];
+const SUAVE_DEF={ ico:"🧘", tipo:"fuerza", titulo:"Movilidad y core", sub:"Sin cargas pesadas", dur:30, int:"baja", obj:"Salir más suelto, no más cansado.",
+  ej:[{n:"Movilidad de cadera 90/90", q:"ten", s:2, r:"5/lado", kg:null, d:"30\"", nota:""},
+      {n:"Puente de glúteo", q:"hip", s:3, r:"12", kg:null, d:"45\"", nota:""},
+      {n:"Dead bug", q:"core", s:3, r:"8/lado", kg:null, d:"45\"", nota:"Lumbar pegada al suelo."},
+      {n:"Plancha lateral", q:"core", s:3, r:"30\"/lado", kg:null, d:"45\"", nota:""}]};
+function construirPropio(){
+  const P=A.plan; SES={};
+  Object.entries(P.sesiones).forEach(([id,s])=>{
+    const fz=Array.isArray(s.ej)&&s.ej.length;
+    SES[id]={ ico:fz?"🏋️":"🧘", tipo:fz?"fuerza":"activo", sub:"", dur:0, int:"media", texto:s.texto||s.obj||"", ...s,
+      ej:fz?s.ej.map(e=>({...e, s:+e.s||1, kg:e.kg===""?null:e.kg})):undefined };
+  });
+  A.bloques = (P.bloques&&P.bloques.length) ? P.bloques : [[P.nombre||"Plan de fuerza", P.inicio, ""]];
+  COMODIN={ gym: SES.suave&&SES.suave.ej ? SES.suave : SUAVE_DEF,
+    descanso:{ ico:"😴", tipo:"activo", titulo:"Descanso", sub:"Recupera", dur:0, int:"baja", texto:"Día libre." } };
+  CAT_F.ten[0]="Tendón y estabilidad";
+}
 function construirSesiones(){
+  if(PROPIO()) return construirPropio();
   const pct=(rm,p)=>r25(rm*p), F=A.ftp, w=p=>Math.round(F*p);
   SES = {
     fa:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza A", sub:"Pierna pesada + tobillo", dur:80, int:"alta", obj:"Fuerza máxima de pierna: la sentadilla a RPE 7-8 con técnica limpia y el tobillo/sóleo trabajado sin dolor. Sal con energía, no reventado.",
@@ -399,16 +422,19 @@ const lunesDe = d => masDias(d, -((d.getDay()+6)%7));
 // Cada semana guarda "dias": 7 listas con los ids de las sesiones de cada día (se pueden mover libremente).
 // Semanas antiguas (orden + segunda) se convierten solas.
 const LIBRE={ico:"😴", tipo:"activo", titulo:"Libre", sub:"Día sin entreno", dur:0, int:"baja", texto:"Día libre. Si te apetece: paseo o movilidad suave."};
-const semDe = L => EST.semanas[iso(L)]||{orden:[...DEF_ORDEN], comodin:"bici"};
+const semBase = () => PROPIO() ? {dias:clone(A.plan.semana||[[],[],[],[],[],[],[]])} : {orden:[...DEF_ORDEN], comodin:"bici"};
+const semDe = L => EST.semanas[iso(L)]||semBase();
 function segundaDe(sm){ if(sm.segunda) return sm.segunda; const a=Array(7).fill(null), k=(sm.orden||DEF_ORDEN).indexOf("fa"); a[k<0?0:k]="z2"; return a; }
 function diasDe(sm){ if(sm.dias) return sm.dias; const seg=segundaDe(sm); return (sm.orden||DEF_ORDEN).map((id,i)=>[id, seg[i]].filter(Boolean)); }
 // Algunas sesiones cambian según la semana del ciclo (s1: alterna VO2 cortas/largas · s2: umbral cada vez más largo)
 function variante(id,L){ if(!L) return id; const b=bloqueDe(L);
+  if(PROPIO()) return SES[id+"@"+(b.k+1)] ? id+"@"+(b.k+1) : id;   // sesión distinta en cada fase (A@2…)
   if(id==="s1") return b.sem%2 ? "s1" : "s1b";
   if(id==="s2") return b.descarga ? "s2d" : ["s2","s2b","s2c","s2c"][Math.min(b.ciclo,4)-1] || "s2";
   return id; }
-function objSes(sm,id,L){ const c=sm.comodin||"bici"; const v=variante(id,L); return id==="com" ? {...COMODIN[c], id:"com-"+c, comodin:true} : SES[v] ? {...SES[v], id} : null; }
-function sesionesFecha(d){ const L=lunesDe(d), i=Math.round((d-L)/864e5), sm=semDe(L); return adaptarAus((diasDe(sm)[i]||[]).map(id=>objSes(sm,id,L)).filter(Boolean), ausenciaDe(iso(d))); }
+function objSes(sm,id,L){ const c=sm.comodin||"bici"; const v=variante(id,L); return id==="com" ? {...COMODIN[c], id:"com-"+c, comodin:true} : SES[v] ? {...SES[v], id:PROPIO()?v:id} : null; }
+function sesionesFecha(d){ if(PROPIO() && A.plan.inicio && iso(d)<A.plan.inicio) return [];
+  const L=lunesDe(d), i=Math.round((d-L)/864e5), sm=semDe(L); return adaptarAus((diasDe(sm)[i]||[]).map(id=>objSes(sm,id,L)).filter(Boolean), ausenciaDe(iso(d))); }
 const principal = l => l.find(s=>!s.opcional) || l[0] || {...LIBRE, id:"libre"};
 function sesionFecha(d){ return principal(sesionesFecha(d)); }
 const pasosPlan = s => s.pasos.map(p=>({n:p.n, reps:p.reps, min:p.min, lo:p.lo, hi:p.hi, z:p.z, rec:p.rec??null, recW:p.recW??null}));
@@ -452,7 +478,7 @@ let sync={ txt:"", cls:"" };
 const CK="coach-cache-v1", PK="coach-pendientes-v1";
 
 function cacheSave(){ try{ localStorage.setItem(CK, JSON.stringify({EST,REG,OURA,ACT,A})); }catch(e){} }
-function cacheLoad(){ try{ const j=JSON.parse(localStorage.getItem(CK)); if(j){ EST=j.EST||EST; REG=j.REG||REG; OURA=j.OURA||OURA; ACT=j.ACT||ACT; if(j.A) A={...A,...j.A}; } }catch(e){} }
+function cacheLoad(){ try{ const j=JSON.parse(localStorage.getItem(CK)); if(j){ EST=j.EST||EST; REG=j.REG||REG; OURA=j.OURA||OURA; ACT=j.ACT||ACT; if(j.A) A={...A,...j.A}; return !!j.A; } }catch(e){} return false; }
 
 /* ---------- guardado con reintentos ---------- */
 const timers={}, chains={}, pendientes=new Set();
@@ -503,6 +529,7 @@ async function cargar(){
   const err=[p,s,r,o,a].find(x=>x.error);
   if(err){ console.warn(err.error); setSync("⚠️ No se pudo leer la nube: "+err.error.message,"err"); return; }
   if(p.data){ A={...A, ...(p.data.perfil||{}), nombre:p.data.nombre||A.nombre}; }
+  PERFIL_OK = !!(p.data && p.data.perfil && Object.keys(p.data.perfil).length);
   construirSesiones();
   const sem={}; s.data.forEach(x=>{ sem[x.semana]=x.datos; });
   Object.keys(EST.semanas).forEach(k=>{ if(pendientes.has("sem:"+k)) sem[k]=EST.semanas[k]; });
@@ -521,7 +548,7 @@ async function cargar(){
 }
 
 /* ---------- semana y registros ---------- */
-function semana(){ return EST.semanas[SEMKEY] || { orden:[...DEF_ORDEN], comodin:"bici" }; }
+function semana(){ return EST.semanas[SEMKEY] || semBase(); }
 function setSemana(s){ EST.semanas[SEMKEY]=s; saveSemana(); }
 function sesionesDia(i){ return sesionesFecha(fecha(i)); }
 function sesionDe(i){ return principal(sesionesDia(i)); }
@@ -574,7 +601,7 @@ function semaforo(i){
     motivos=[`VFC ${hv.v7} ms (media 7 días) · tu normal ${hv.base} ms${nivel?" → por debajo":""}`];
   } else {
     nivel = rd==null ? 0 : rd>=80 ? 0 : rd>=65 ? 1 : 2;
-    motivos=[rd==null ? "Sin dato de Oura todavía" : `Recuperación Oura ${rd}${hv===null&&vfcDias()?` · el semáforo pasará a usar tu VFC en cuanto haya 3 semanas de datos`:""}`];
+    motivos=[rd==null ? (PROPIO()?"Según tu check-in":"Sin dato de Oura todavía") : `Recuperación Oura ${rd}${hv===null&&vfcDias()?` · el semáforo pasará a usar tu VFC en cuanto haya 3 semanas de datos`:""}`];
   }
   if(c.piernas && c.piernas<=2){ nivel++; motivos.push("piernas cargadas"); }
   // Ayer: feedback o, si no hay, lo que dice Strava frente a lo previsto
@@ -586,7 +613,7 @@ function semaforo(i){
   const txtAyer=(ayer&&ayer.com||"").toLowerCase(), alerta=alertaComentario(txtAyer);
   if(alerta){ nivel = Math.max(nivel+1, alerta.nivel); motivos.push(`tu comentario de ayer habla de ${alerta.que}`); }
   const tobillo = (c.tobillo && c.tobillo<=2) || (alerta && alerta.tobillo);
-  if(tobillo){ nivel=Math.max(nivel,1); motivos.push("tobillo con molestias"); }
+  if(tobillo){ nivel=Math.max(nivel,1); motivos.push(PROPIO()?"con molestias":"tobillo con molestias"); }
   const enf=(A.ausencias||[]).find(x=>x.tipo==="enfermo" && x.hasta<f && x.hasta>=iso(masDias(fecha(i),-3)));
   if(enf){ nivel=Math.max(nivel,1); motivos.push("vuelta tras estar enfermo: empezamos suave"); }
   nivel=Math.min(nivel,2);
@@ -594,8 +621,8 @@ function semaforo(i){
   if(extra) motivos.push("ayer hiciste menos");
   return { nivel, motivos, tobillo, extra };
 }
-function aprendido(sesId, nombre, f){
-  const ds=Object.keys(REG).filter(d=>d<f && REG[d].ses===sesId && REG[d].plan && REG[d].plan[nombre]!=null).sort().reverse();
+function aprendido(sesId, nombre, f, desde){
+  const ds=Object.keys(REG).filter(d=>d<f && (!desde || d>=desde) && REG[d].ses===sesId && REG[d].plan && REG[d].plan[nombre]!=null).sort().reverse();
   if(!ds.length) return null;
   const r=REG[ds[0]], real=num(r.pesos&&r.pesos[nombre]) ?? num(r.plan[nombre]);
   if(real==null) return null;
@@ -610,13 +637,15 @@ function aprendido(sesId, nombre, f){
 function ajustar(s, sem, f){
   const t=clone(s); t.cambios=[];
   if(s.tipo==="fuerza"){
-    if(sem.tobillo){ t.ej.forEach(e=>{ if(e.cinta) e.off=true; }); t.cambios.push("Sin cinta hoy por el tobillo"); }
+    if(sem.tobillo && t.ej.some(e=>e.cinta)){ t.ej.forEach(e=>{ if(e.cinta) e.off=true; }); t.cambios.push("Sin cinta hoy por el tobillo"); }
     if(sem.nivel===2 && s.int!=="baja")
-      return {...clone(COMODIN.gym), id:s.id+"-rojo", titulo:"Fuerza C (cambio)", cambios:["Hoy no toca pesado: cambiamos a movilidad, tobillo y core"]};
+      return {...clone(COMODIN.gym), id:s.id+"-rojo", titulo:COMODIN.gym.titulo+" (cambio)", cambios:[PROPIO()?"Hoy no toca pesado: cambiamos a una sesión suave":"Hoy no toca pesado: cambiamos a movilidad, tobillo y core"]};
     const b=bloqueDe(lunesDe(new Date(f+"T00:00:00")));
     t.ej.forEach(e=>{
       if(!e.main || typeof e.kg!=="number") return;
-      const a=aprendido(s.id, e.n, f); if(a){ e.kg=a.kg; e.por=a.por; }
+      // Plan propio: solo aprende de este plan (desde su inicio) o, si el ejercicio lleva «fijar», desde que se guardó
+      const desde = PROPIO() ? (e.fijar ? A.plan.guardado : A.plan.inicio) : null;
+      const a=aprendido(s.id, e.n, f, desde); if(a){ e.kg=a.kg; e.por=a.por; }
       if(b.descarga){ e.s=Math.max(2,e.s-1); e.kg=r25(e.kg*0.9); }
       if(sem.nivel===1){ e.s=Math.max(2,e.s-1); e.kg=r25(e.kg*0.95); }
       if(sem.extra){ e.kg=r25(e.kg*1.025); }
@@ -733,6 +762,7 @@ app.addEventListener("focusout",()=>{ if(!renderPend) return; clearTimeout(rende
 function setSync(txt,cls){ sync={txt,cls}; const el=document.getElementById("sync"); if(el){ el.textContent=txt; el.className="sync "+cls; } }
 function render(){
   if(!USER) return;
+  if(sinPlan()) return vAlta();
   document.getElementById("nav").classList.remove("hidden");
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===UI.tab));
   app.innerHTML = UI.tab==="hoy" ? vHoy() : UI.tab==="semana" ? vSemana() : UI.tab==="info" ? vInfo() : vProgreso();
@@ -743,12 +773,16 @@ function header(){
   const proximo = [...(A.retos||[]), ...(A.reto?[A.reto]:[])].filter(x=>x&&x.fecha)
     .map(x=>({...x, d:Math.ceil((new Date(x.fecha+"T00:00:00")-HOYD)/864e5)})).filter(x=>x.d>=0).sort((a,b)=>a.d-b.d)[0];
   const dias = proximo && proximo.d<=90 ? proximo.d : null;
-  return `<div class="cab-bloque">📍 Bloque <b>${b.nombre}</b> · semana ${b.sem}${b.ausente?" · ✈️ semana fuera":b.descarga?" · descarga":""}</div>
+  const antes = PROPIO() && A.plan.inicio && SEMKEY < A.plan.inicio;
+  return `<div class="cab-bloque">${antes?`📍 Tu plan empieza el <b>${new Date(A.plan.inicio+"T00:00:00").toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</b>`
+    :`📍 Bloque <b>${esc(b.nombre)}</b> · semana ${b.sem}${b.ausente?" · ✈️ semana fuera":b.descarga?" · descarga":""}`}</div>
     <div class="row between" style="align-items:flex-start"><div style="min-width:0"><h1>Hola${A.nombre?", "+esc(A.nombre):""}</h1><div id="sync" class="sync ${sync.cls}">${sync.txt}</div></div>
     ${dias!=null?`<div class="cuenta"><b>${dias}</b><span>días para la<br>${esc(proximo.nombre||proximo.corto||"tu reto")}</span></div>`:""}</div>`;
 }
 function vOura(i,f,c){
   const o=OURA[f];
+  if(PROPIO() && !Object.keys(OURA).length)
+    return `<div class="card" style="margin-top:12px"><h3>🩺 ¿Cómo estás ${i===HOY?"hoy":"el "+fecha(i).toLocaleDateString("es-ES",{weekday:"long"})}?</h3>${escalas(c)}</div>`;
   const tono=v=>v==null?"":v>=80?"good":v>=65?"mid":"bad";
   if(o && (o.readiness!=null || o.sueno_horas!=null)){
     return `<div class="card" style="margin-top:12px"><div class="row between"><h3>💤 Oura · ${i===HOY?"esta mañana":DIAS[i].toLowerCase()}</h3><span class="muted small">automático</span></div>
@@ -767,7 +801,8 @@ function vOura(i,f,c){
     </div>${escalas(c)}</div>`;
 }
 function escalas(c){
-  return `${barra("piernas","Fatiga de piernas",c.piernas)}${barra("tobillo","Dolor de tobillo / rodilla",c.tobillo)}`;
+  const mol = PROPIO() ? (A.plan.molestia||"Dolor o molestias") : "Dolor de tobillo / rodilla";
+  return `${barra("piernas",PROPIO()?"Fatiga general":"Fatiga de piernas",c.piernas)}${barra("tobillo",esc(mol),c.tobillo)}`;
 }
 /* ---------- previsto vs hecho ---------- */
 // Une cada sesión de bici del día con la actividad de Strava de duración más parecida
@@ -835,6 +870,10 @@ function tarjetaSesion(ses,f,r,primeraBici,act){
     ${ses.nota?`<p class="muted small">${ses.opcional?"💡":"🍌"} ${ses.nota}</p>`:""}
   </div>`;
 }
+function planTerminado(){
+  if(!PROPIO() || !A.plan.inicio || !A.plan.semanas) return false;
+  return HOYD >= masDias(new Date(A.plan.inicio+"T00:00:00"), 7*A.plan.semanas);
+}
 function vHoy(){
   const i=UI.dia, f=iso(fecha(i)), r=REG[f]||{}, c=r.checkin||{};
   const sem=semaforo(i), crudas=sesionesDia(i), lista=crudas.map(x=>ajustar(x, sem, f));
@@ -853,9 +892,10 @@ function vHoy(){
   ${mismoDia(lista)?`<div class="card warn" style="font-size:13.5px">⏱ Hoy tienes fuerza y series de bici: haz una por la mañana y otra por la tarde (mínimo 6 h entre ellas). Así la fuerza resta menos a la bici.</div>`:""}
   ${crudas.some(x=>x.comodin)?`<div class="card"><label class="f">Comodín: ¿qué te apetece?</label>
     <div class="seg">${[["bici","🚴 Bici"],["gym","🏋️ Gimnasio"],["descanso","😴 Descanso"]].map(([k,t])=>`<button data-com="${k}" class="${(semana().comodin||"bici")===k?"on":""}">${t}</button>`).join("")}</div></div>`:""}
-  ${lista.length?lista.map((x,k)=>tarjetaSesion(x,f,r,k===pb,par[k])).join(""):tarjetaSesion({...LIBRE},f,r,false)}
+  ${planTerminado()?`<div class="card warn" style="font-size:13.5px">🏁 <b>Tu plan ha terminado.</b> Ve a <b>Info → Tu coach</b>, copia tus datos y pégaselos a Claude para preparar el siguiente.</div>`:""}
+  ${lista.length?lista.map((x,k)=>tarjetaSesion(x,f,r,k===pb,par[k])).join(""):tarjetaSesion(PROPIO()?{...LIBRE, titulo:"Hoy no hay fuerza", sub:"", texto:esc(A.plan.textoLibre||"Hoy no toca fuerza.")}:{...LIBRE},f,r,false)}
   ${acts.length?`<div class="card">${acts.map(a=>`<div class="strava"><b>Strava:</b> ${esc(a.nombre||a.tipo)} · ${hm(a.duracion_s||0)}${a.potencia_norm?` · NP ${Math.round(a.potencia_norm)} W`:""}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}${a.carga?` · carga ${Math.round(a.carga)}`:""}</div>`).join("")}</div>`:""}
-  <div class="card"><h3>📝 Feedback del día</h3>
+  ${PROPIO()&&!lista.length?"":`<div class="card"><h3>📝 Feedback del día</h3>
     <div style="margin-top:10px"><label class="f">¿Cómo ha ido?</label>
       <div class="seg">${[["plan","Según plan"],["menos","Menos"],["mas","Más duro"]].map(([k,t])=>`<button data-cu="${k}" class="${(fb&&fb.cumpl||"plan")===k?"on":""}">${t}</button>`).join("")}</div></div>
     <div style="margin-top:10px"><label class="f">RPE del día (1-10)</label>
@@ -865,7 +905,7 @@ function vHoy(){
     <button class="btn" style="margin-top:12px" id="guardar">${lista.some(x=>x.tipo==="fuerza")&&!r.terminada?"✅ Guardar feedback y terminar sesión":fb?"Actualizar feedback":"Guardar feedback"}</button>
     ${lista.some(x=>x.tipo==="fuerza")&&!r.terminada?`<p class="muted small" style="margin:6px 0 0;text-align:center">El resumen «previsto vs hecho» de la fuerza aparece al terminar.</p>`:""}
     ${fb?`<p class="small" style="color:var(--green)">✓ Guardado. ${esc(fb.sug||"")}</p>`:""}
-  </div>`;
+  </div>`}`;
 }
 const NIVEL=["","Nada","Poca","Algo","Bastante","Mucha"];
 function barra(k,titulo,v){   // v guardado: 5 = perfecto · se muestra 6 − v (1 = nada, 5 = mucha)
@@ -915,7 +955,7 @@ function vBici(s,f,sinBoton){
 const mismoDia = l => l.some(x=>x.tipo==="fuerza"&&x.int!=="baja") && l.some(x=>x.tipo==="bici"&&x.int==="alta");
 function vSemana(){
   const sel=UI.mover, sm=semana(), D=diasDe(sm);
-  const cambiada=!!sm.dias || !!sm.segunda || (sm.orden||DEF_ORDEN).join()!==DEF_ORDEN.join();
+  const cambiada=PROPIO() ? !!sm.dias && JSON.stringify(sm.dias)!==JSON.stringify(A.plan.semana) : !!sm.dias || !!sm.segunda || (sm.orden||DEF_ORDEN).join()!==DEF_ORDEN.join();
   const selS = sel ? sesionesDia(sel.i)[sel.j] : null;
   const dura = l => l.some(x=>x.int==="alta");
   return `${header()}${vNota()}<h2>Tu semana</h2>
@@ -950,7 +990,7 @@ function vAusencias(){
   const hoy=iso(HOYD), l=(A.ausencias||[]).map((x,k)=>({...x,k})).filter(x=>x.hasta>=hoy).sort((a,b)=>a.desde<b.desde?-1:1);
   const fd=f=>new Date(f+"T00:00:00").toLocaleDateString("es-ES",{day:"numeric",month:"short"});
   return `<div class="card" style="margin-top:14px"><h3>✈️ Viajes y vacaciones</h3>
-    <p class="muted small" style="margin:4px 0 8px">Marca los días que estás fuera: el plan se adapta, no se manda bici a Garmin esos días y la semana de descarga se mueve para coincidir.</p>
+    <p class="muted small" style="margin:4px 0 8px">Marca los días que estás fuera: el plan se adapta${PROPIO()?"":", no se manda bici a Garmin esos días"} y la semana de descarga se mueve para coincidir.</p>
     ${l.map(x=>`<div class="row between ausl"><span>${AUS[x.tipo][0]} <b>${AUS[x.tipo][1]}</b><br><span class="muted small">${fd(x.desde)}${x.hasta!==x.desde?" – "+fd(x.hasta):""}${x.nota?" · "+esc(x.nota):""}</span></span>
       <button class="btn ghost small" data-ausdel="${x.k}">🗑</button></div>`).join("")||`<p class="muted small" style="margin:0 0 8px">Nada marcado.</p>`}
     <details class="ausform"><summary>➕ Añadir</summary>
@@ -982,19 +1022,19 @@ function vVolumen(V){
   const P=V.plan, H=V.hecho, kg=x=>Math.round(x).toLocaleString("es-ES")+" kg", n=x=>String(Math.round(x));
   const db=dominante(P.cb,CAT_B), df=dominante(P.cf,CAT_F);
   return `<h2>Volumen de la semana</h2>
-  <div class="card"><p class="muted small" style="margin:0 0 10px">Hecho frente a programado. La bici sale de Strava; la fuerza, de las series que marcas (o de todo el entreno si solo dejas feedback).</p>
-    ${filaVol("🚴","Bici · tiempo",H.min,P.min,fmtMin,V.extra?`➕ Además, ${V.extra}' de Z2 opcional`:"")}
-    ${filaVol("🚴","Bici · carga",H.carga,P.carga,n," pts")}
+  <div class="card"><p class="muted small" style="margin:0 0 10px">Hecho frente a programado.${PROPIO()?"":" La bici sale de Strava;"} La fuerza sale de las series que marcas (o de todo el entreno si solo dejas feedback).</p>
+    ${PROPIO()?"":filaVol("🚴","Bici · tiempo",H.min,P.min,fmtMin,V.extra?`➕ Además, ${V.extra}' de Z2 opcional`:"")}
+    ${PROPIO()?"":filaVol("🚴","Bici · carga",H.carga,P.carga,n," pts")}
     ${filaVol("🏋️","Fuerza · sesiones",H.ses,P.ses,n)}
     ${filaVol("🏋️","Fuerza · series",H.series,P.series,n)}
     ${filaVol("🏋️","Fuerza · kilos movidos",H.ton,P.ton,kg)}
     <p class="muted small" style="margin:4px 0 0">Kilos movidos = peso × repeticiones × series de los ejercicios con barra o carga fija.</p></div>
   <h2>Qué estamos trabajando</h2>
   <div class="card">
-    <h3>🚴 Bici (minutos)</h3>
+    ${PROPIO()?"":`<h3>🚴 Bici (minutos)</h3>
     <div class="small muted" style="margin:8px 0 4px">Programado</div>${barraApilada(P.cb,CAT_B)}${leyenda(P.cb,CAT_B,fmtMin)}
-    <div class="small muted" style="margin:12px 0 4px">Hecho${V.estimado?" (en parte estimado con tu potencia media)":""}</div>${barraApilada(H.cb,CAT_B)}${leyenda(H.cb,CAT_B,fmtMin)}
-    <h3 style="margin-top:16px">🏋️ Fuerza (series)</h3>
+    <div class="small muted" style="margin:12px 0 4px">Hecho${V.estimado?" (en parte estimado con tu potencia media)":""}</div>${barraApilada(H.cb,CAT_B)}${leyenda(H.cb,CAT_B,fmtMin)}`}
+    <h3 style="margin-top:${PROPIO()?0:16}px">🏋️ Fuerza (series)</h3>
     <div class="small muted" style="margin:8px 0 4px">Programado</div>${barraApilada(P.cf,CAT_F)}${leyenda(P.cf,CAT_F,n)}
     <div class="small muted" style="margin:12px 0 4px">Hecho</div>${barraApilada(H.cf,CAT_F)}${leyenda(H.cf,CAT_F,n)}
     ${db||df?`<p class="small" style="margin:12px 0 0">💡 ${db?`El ${db.p} % de la bici programada es <b>${db.n}</b>`:""}${db&&df?"; en ":""}${df?`${db?"":"En "}fuerza manda la <b>${df.n}</b> (${df.p} %)`:""}. ${tipoSemana()}</p>`:""}
@@ -1002,6 +1042,7 @@ function vVolumen(V){
 }
 function tipoSemana(){ const b=bloque();
   if(b.descarga) return "Semana de descarga: menos volumen para asimilar.";
+  if(PROPIO()) return "";
   return {0:"Bloque de base: mucha base aeróbica y fuerza máxima con pocas repeticiones.",1:"Construcción: suben sweet spot y umbral.",
     2:"Específico Mallorca: volumen largo en base y ritmo de carrera.",3:"Afinado: poco volumen, algo de intensidad."}[b.k]||""; }
 function mesociclo(){
@@ -1024,10 +1065,10 @@ function vMeso(){
   <div class="seg" style="margin-bottom:10px">${[["meso",`Mesociclo ${M.n}`],["8s","Últimas 8 semanas"]].map(([k,t])=>`<button data-meso="${k}" class="${modo===k?"on":""}">${t}</button>`).join("")}</div>
   <div class="card">
     <p class="muted small" style="margin:0 0 6px">${modo==="meso"?`${esc(M.nombre)} · mesociclo ${M.n}: 3 semanas de carga + 1 de descarga. En claro, lo programado; encima, en color, lo hecho.`:"En claro, lo programado; en color, lo hecho (bici con Strava, fuerza con tus registros)."}</p>
-    <h3>🚴 Bici (minutos)</h3>
+    ${PROPIO()?"":`<h3>🚴 Bici (minutos)</h3>
     <div class="chart">${datos.map(d=>col(d,d.cb,d.pb,CAT_B,mxB,etq(d))).join("")}</div>
-    ${leyenda(sB,CAT_B,fmtMin)}
-    <h3 style="margin-top:16px">🏋️ Fuerza (series)</h3>
+    ${leyenda(sB,CAT_B,fmtMin)}`}
+    <h3 style="margin-top:${PROPIO()?0:16}px">🏋️ Fuerza (series)</h3>
     <div class="chart">${datos.map(d=>col(d,d.cf,d.pf,CAT_F,mxF,etq(d))).join("")}</div>
     ${leyenda(sF,CAT_F,x=>String(Math.round(x)))}
   </div>`;
@@ -1088,24 +1129,25 @@ function vProgreso(){
   return `${header()}<h2>Esta semana</h2>
   <div class="card"><div class="row between"><b>Sesiones hechas</b><span>${hechas} de ${plan}</span></div>
     <div class="bar" style="margin-top:8px"><i style="width:${Math.max(3,hechas/plan*100)}%"></i></div></div>
-  ${vForma(P)}
+  ${PROPIO()?"":vForma(P)}
   ${vMeso()}
-  <h2>Carga semanal</h2>
+  ${PROPIO()?"":`<h2>Carga semanal</h2>
   <div class="card"><div class="row small"><span><i style="display:inline-block;width:10px;height:10px;background:var(--line);border-radius:3px"></i> Prevista</span>
     <span><i style="display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:3px"></i> Hecha (Strava)</span></div>
-    <div class="chart">${semanas.map(([n,p,h])=>`<div class="col"><div class="bars"><i style="height:${p/mx*100}%;background:var(--line)"></i><i style="height:${h/mx*100}%;background:var(--accent)"></i></div><span>${n}</span></div>`).join("")}</div></div>
+    <div class="chart">${semanas.map(([n,p,h])=>`<div class="col"><div class="bars"><i style="height:${p/mx*100}%;background:var(--line)"></i><i style="height:${h/mx*100}%;background:var(--accent)"></i></div><span>${n}</span></div>`).join("")}</div></div>`}
   <h2>Objetivos</h2>
   <div class="card">
+    ${PROPIO() ? Object.keys(A.rm||{}).map(k=>g(esc(k)+" · máximo",num(A.rm[k]),num(O[k]),num((A.rmInicial||{})[k])??num(A.rm[k])*0.95,"kg")).join("")+g("Peso",pesoAct,A.pesoObj,(A.pesoInicial||pesoAct+1),"kg") : `
     ${g("FTP",A.ftp,O.ftp,A.ftp-10,"W")}
     ${g("Peso",pesoAct,A.pesoObj,(A.pesoInicial||pesoAct+1),"kg")}
     ${g("Sentadilla 1RM",A.rm.sentadilla,O.sentadilla,A.rm.sentadilla-6,"kg")}
     ${g("Peso muerto 1RM",A.rm.pesoMuerto,O.pesoMuerto,A.rm.pesoMuerto-7,"kg")}
-    ${g("Press de hombro 1RM",A.rm.press,O.press,A.rm.press-2.5,"kg")}
+    ${g("Press de hombro 1RM",A.rm.press,O.press,A.rm.press-2.5,"kg")}`}
     <div class="row" style="margin-top:6px"><input id="pesoCorp" inputmode="decimal" placeholder="Tu peso de hoy (kg)" value="${esc((REG[iso(HOYD)]||{}).pesoCorporal||"")}"><button class="btn small" id="gpeso">Guardar</button></div>
   </div>
   ${A.objetivoMes?`<div class="card"><h3>🗓 Objetivo del mes</h3><p class="muted" style="margin:6px 0 0">${esc(A.objetivoMes)}</p></div>`:""}
-  <h2>Camino al reto</h2>
-  <div class="card"><div class="timeline">${A.bloques.map((x,k)=>`<div class="${k===b.k?"now":""}">${x[0]}<br>${x[2]}</div>`).join("")}</div></div>
+  <h2>${PROPIO()?"Fases del plan":"Camino al reto"}</h2>
+  <div class="card"><div class="timeline">${A.bloques.map((x,k)=>`<div class="${k===b.k?"now":""}">${esc(x[0])}<br>${esc(x[2]||"")}</div>`).join("")}</div></div>
   <button class="btn ghost" id="salir" style="margin-top:8px">Cerrar sesión</button>`;
 }
 
@@ -1198,7 +1240,120 @@ function vBitacora(){
     <p class="muted small" style="margin:4px 0 8px">Qué se ha cambiado en tu plan, cuándo y por qué: desde la web, desde Claude en el móvil o en la revisión del domingo.</p>
     ${b.map(e=>`<div class="bit"><span class="muted small">${ico[e.origen]||"🤖"} ${new Date(e.fecha).toLocaleString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})} · ${esc(e.origen||"")}</span><div>${esc(e.texto)}</div></div>`).join("")||`<p class="muted small">Todavía vacía.</p>`}</details>`;
 }
+/* ---------- atletas con plan propio: su Claude es el coach (alta, revisiones) ---------- */
+const MD={};   // instrucciones públicas para Claude (docs/coach/*.md), precargadas para poder copiarlas al momento
+function precargarMD(){ ["alta","revision"].forEach(k=>{ if(MD[k]) return;
+  fetch("coach/"+k+".md",{cache:"no-cache"}).then(r=>r.ok?r.text():null).then(t=>{ if(t) MD[k]=t; }).catch(()=>{}); }); }
+function textoAlta(){
+  return (MD.alta||"Lee y sigue estas instrucciones: "+new URL("coach/alta.md",location.href).href)
+    + `\n\n---\nHoy es ${iso(HOYD)}. El plan debería empezar el lunes ${iso(masDias(LUNES,7))} (o este lunes si prefiero empezar ya). Empieza la entrevista.`;
+}
+function datosParaClaude(){
+  const desde=iso(masDias(HOYD,-56)), regs=Object.keys(REG).filter(f=>f>=desde).sort().map(f=>{ const r=REG[f];
+    return {fecha:f, sesion:r.ses, plan_kg:r.plan, kg_real:r.pesos, rpe_ejercicio:r.rpeEj, series_marcadas:r.sets?Object.values(r.sets).filter(Boolean).length:null,
+      checkin:r.checkin, feedback:r.feedback?{rpe:r.feedback.rpe, como:r.feedback.cumpl, comentario:r.feedback.com}:null, terminada:!!r.terminada, peso_corporal:r.pesoCorporal}; });
+  const b=bloque();
+  return { hoy:iso(HOYD), semana_del_plan:{bloque:b.nombre, numero_bloque:b.k+1, semana:b.sem, descarga:b.descarga},
+    nombre:A.nombre, contexto:A.contexto||"", perfil:{peso:A.peso, rm:A.rm, objetivos:A.objetivos, retos:A.retos, objetivoMes:A.objetivoMes, objetivoSemana:A.objetivoSemana, ausencias:A.ausencias||[]},
+    bitacora:(A.bitacora||[]).slice(-20), plan:A.plan, semanas_movidas:EST.semanas, registros:regs };
+}
+function textoRevision(){
+  return (MD.revision||"Lee y sigue estas instrucciones: "+new URL("coach/revision.md",location.href).href)
+    + "\n\n---\n## Mis datos\n```json\n"+JSON.stringify(datosParaClaude())+"\n```\nEmpieza la revisión.";
+}
+async function copiar(txt, id){
+  try{ await navigator.clipboard.writeText(txt); toast("Copiado: pégalo en Claude"); return; }catch(e){}
+  const t=document.getElementById(id); if(t){ t.value=txt; t.classList.remove("hidden"); t.focus(); t.select(); toast("Selecciona todo y copia"); }
+}
+// Lee el bloque JSON que devuelve Claude (admite el texto de alrededor y las ``` )
+function leerPlan(txt){
+  const a=txt.indexOf("{"), z=txt.lastIndexOf("}");
+  if(a<0||z<a) throw new Error("No encuentro el bloque de Claude. Copia la respuesta entera.");
+  let j; try{ j=JSON.parse(txt.slice(a,z+1)); }catch(e){ throw new Error("El bloque está incompleto o mal copiado. Copia todo, desde la primera { hasta la última }."); }
+  const P=j.plan||{};
+  if(j.tipo!=="claude-coach-plan" || !P.sesiones || typeof P.sesiones!=="object") throw new Error("Esto no parece un plan de Claude Coach.");
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(P.inicio||"")) throw new Error("Falta la fecha de inicio del plan.");
+  if(!Array.isArray(P.semana) || P.semana.length!==7 || P.semana.some(d=>!Array.isArray(d)||d.some(id=>!P.sesiones[id])))
+    throw new Error("La semana tipo no es válida (7 días con sesiones que existan). Pídele a Claude que lo revise.");
+  Object.entries(P.sesiones).forEach(([id,s])=>{ if(!s||!s.titulo) throw new Error(`A la sesión «${id}» le falta el título.`);
+    (s.ej||[]).forEach(e=>{ if(!e.n||!e.s) throw new Error(`Un ejercicio de «${s.titulo}» no tiene nombre o series.`); }); });
+  return j;
+}
+async function guardarPlanClaude(txt){
+  const j=leerPlan(txt), ahora=new Date().toISOString();
+  const {data,error}=await sb.from("atletas").select("nombre,perfil").maybeSingle();
+  if(error) throw new Error("No se pudo leer tu perfil: "+error.message);
+  const pf=(data&&data.perfil)||{}, nuevo=!pf.plan || pf.plan.inicio!==j.plan.inicio;
+  const per=j.perfil||{}, ok=["peso","pesoObj","rm","objetivos","retos","objetivoMes","objetivoSemana"];
+  const p={...pf}; ok.forEach(k=>{ if(per[k]!==undefined) p[k]=per[k]; });
+  if(!pf.rmInicial && per.rm) p.rmInicial=per.rm;
+  if(j.contexto && j.contexto.length>50) p.contexto=j.contexto;
+  p.plan={...j.plan, guardado:iso(HOYD)};
+  if(!p.consentimiento) p.consentimiento=(USER.user_metadata&&USER.user_metadata.consentimiento)||ahora;
+  if(j.nota&&j.nota.texto) p.notaCoach={fecha:iso(HOYD), semana:SEMKEY, texto:String(j.nota.texto), ajustes:(j.nota.ajustes||[]).map(String).slice(0,8)};
+  p.bitacora=[...(pf.bitacora||[]), {fecha:ahora.slice(0,16)+"Z", origen:"Claude", texto:(nuevo?"Plan nuevo: ":"Plan revisado: ")+(j.plan.nombre||"")
+    +((j.nota&&j.nota.ajustes||[]).length?" · "+j.nota.ajustes.slice(0,4).join("; "):"")}].slice(-150);
+  const r=await sb.from("atletas").upsert({user_id:USER.id, nombre:j.nombre||(data&&data.nombre)||null, perfil:p});
+  if(r.error) throw new Error("No se pudo guardar: "+r.error.message);
+  if(nuevo){ await sb.from("semanas").delete().gte("semana", SEMKEY); Object.keys(EST.semanas).forEach(k=>{ if(k>=SEMKEY) delete EST.semanas[k]; }); }
+  A={...A, ...p, nombre:j.nombre||A.nombre}; construirSesiones(); cacheSave();
+  return nuevo;
+}
+function vCoach(){
+  precargarMD();
+  return `<div class="card nota"><h3>🤖 Tu coach (Claude)</h3>
+    <p class="small" style="margin:6px 0 10px">Cada 3-4 semanas, al acabar una fase o cuando cambie algo (competición, molestias, menos tiempo): copia tus datos, pégaselos a Claude y habla con él. Te devolverá el plan actualizado para pegarlo aquí.</p>
+    <button class="btn" data-copiar="revision">📋 Copiar mis datos para Claude</button>
+    <textarea id="txt-revision" class="hidden" rows="4" style="margin-top:8px"></textarea>
+    <details class="ausform" style="margin-top:10px"><summary>📥 Pegar plan de Claude</summary>
+      <textarea id="pegar-plan" rows="6" placeholder="Pega aquí la respuesta de Claude (el bloque que empieza por { )">${esc(UI.pegado||"")}</textarea>
+      <button class="btn" style="margin-top:8px" data-pegar="1">Guardar plan</button>
+      <p class="small" id="pegar-msg" style="margin:6px 0 0"></p></details>
+    <p class="muted small" style="margin:10px 0 0">Plan actual: <b>${esc(A.plan.nombre||"")}</b> · desde el ${esc(A.plan.inicio)}${A.plan.semanas?` · ${A.plan.semanas} semanas`:""}</p></div>`;
+}
+function vAlta(){
+  precargarMD();
+  document.getElementById("nav").classList.add("hidden");
+  app.innerHTML=`<div class="login" style="max-width:520px"><h1>👋 Bienvenido${A.nombre?", "+esc(A.nombre):""}</h1>
+    <p class="muted">Tu entrenador de fuerza será tu propio Claude. En 10 minutos tienes tu plan:</p>
+    <div class="card"><h3>1 · Copia las instrucciones</h3>
+      <p class="small muted" style="margin:6px 0 10px">Llevan todo lo que Claude necesita para entrevistarte y diseñar tu plan.</p>
+      <button class="btn" data-copiar="alta">📋 Copiar instrucciones para Claude</button>
+      <textarea id="txt-alta" class="hidden" rows="4" style="margin-top:8px"></textarea></div>
+    <div class="card"><h3>2 · Pégalas en Claude</h3>
+      <p class="small muted" style="margin:6px 0 0">En una conversación nueva (app, web o Claude Code). Te hará preguntas sobre tu deporte, lesiones, días disponibles y objetivos, y te propondrá un plan. Cuando le des el OK, te devolverá un bloque de texto.</p></div>
+    <div class="card"><h3>3 · Pega aquí su respuesta</h3>
+      <textarea id="pegar-plan" rows="6" placeholder="Pega aquí la respuesta de Claude (el bloque que empieza por { )" style="margin-top:8px">${esc(UI.pegado||"")}</textarea>
+      <button class="btn" style="margin-top:8px" data-pegar="1">Guardar mi plan</button>
+      <p class="small" id="pegar-msg" style="margin:6px 0 0"></p></div>
+    <button class="btn ghost" id="salir">Cerrar sesión</button></div>`;
+}
+function vInfoPropio(){
+  const B=A.bloques;
+  return `${header()}<h2>Información</h2>${vNota()}${vCoach()}<div class="info">
+  ${vBitacora()}
+  ${A.contexto?`<details><summary>👤 Lo que tu coach sabe de ti</summary><div class="small" style="white-space:pre-wrap">${esc(A.contexto)}</div></details>`:""}
+  <details><summary>📏 Escala RPE (esfuerzo percibido)</summary>
+    <table class="tz">${[["10","Máximo, no sale otra"],["9","Quedaba 1 rep"],["8","Quedaban 2"],["7","Quedaban 3, velocidad buena"],["5-6","Cómodo, calentamiento"],["1-4","Muy suave"]].map(([a,b])=>`<tr><td>${b}</td><td>${a}</td></tr>`).join("")}</table></details>
+  <details><summary>🧠 Cómo decide la web</summary>
+    <ul>
+      <li><b>Semáforo diario</b>: tu check-in (fatiga y molestias) + cómo fue la sesión anterior (tu feedback y comentario). Ámbar: una serie menos y −5 % de peso. Rojo: sesión suave.</li>
+      <li><b>Pesos que aprenden</b>: RPE ≤7,5 → +2,5 kg la próxima vez · RPE 8-9 → mismo peso · RPE ≥9,5 → −2,5 kg. Apunta el RPE de cada ejercicio principal.</li>
+      <li><b>Descarga</b>: cada 4.ª semana, −10 % de peso y una serie menos.</li>
+      <li><b>Fases</b>: ${B.map(x=>esc(x[0])+(x[2]?` (${esc(x[2])})`:"")).join(" → ")}.</li>
+      <li><b>Comentarios</b>: si escribes «dolor», «molestias», «agotado» o «dormí mal», el día siguiente baja a ámbar; «fiebre» o «lesión», a rojo. «Sin dolor» o «ninguna molestia» no cuentan.</li>
+    </ul></details>
+  <details><summary>🔬 En qué se basa</summary>
+    <ul>
+      <li>🟢 <b>Fuerza pesada en deportes de resistencia</b>: 2 días por semana, sin fallo, mejora la economía y la potencia. <span class="muted">Rønnestad y Mujika, 2014; Beattie y cols., 2014; Blagrove y cols., 2018.</span></li>
+      <li>🟢 <b>RPE / repeticiones en reserva</b> para ajustar los pesos al día. <span class="muted">Zourdos y cols., 2016; Helms y cols., 2016.</span></li>
+      <li>🟡 <b>Mantenimiento</b>: 1 sesión semanal conserva lo ganado en temporada. <span class="muted">Rønnestad y cols., 2011.</span></li>
+      <li>⚪ El ciclo «3 semanas de carga + 1 de descarga» es práctica habitual, no un dato de estudio.</li>
+    </ul><p class="muted small">Esto no sustituye a tu médico ni a tu fisio.</p></details>
+  </div>`;
+}
 function vInfo(){
+  if(PROPIO()) return vInfoPropio();
   const F=A.ftp, w=p=>Math.round(F*p), kg=A.peso||null;
   const ZP=[["Z1","Recuperación","#7f8a99",0,.55,"Soltar piernas. Hablas sin esfuerzo."],
     ["Z2","Base aeróbica","#3dd6c6",.56,.75,"Fondo. Puedes hablar con frases largas. Es la base de Mallorca."],
@@ -1271,16 +1426,22 @@ function vInfo(){
   </div>`;
 }
 /* ---------- login ---------- */
-function vLogin(msg){
+function vLogin(msg, alta, ok){
   document.getElementById("nav").classList.add("hidden");
   app.innerHTML=`<div class="login"><h1 style="text-align:center">🚴🏋️ Claude Coach</h1>
     <div class="card" style="margin-top:16px">
+      ${alta?`<h3 style="margin-bottom:8px">Crear cuenta</h3>`:""}
       <label class="f">Email</label><input id="lemail" type="email" autocomplete="username" inputmode="email">
-      <label class="f" style="margin-top:10px">Contraseña</label><input id="lpass" type="password" autocomplete="current-password">
-      <button class="btn" id="entrar" style="margin-top:14px">Entrar</button>
-      ${msg?`<p class="small" style="color:var(--red)">${esc(msg)}</p>`:""}
+      <label class="f" style="margin-top:10px">Contraseña${alta?" (mínimo 8 caracteres)":""}</label><input id="lpass" type="password" autocomplete="${alta?"new-password":"current-password"}">
+      ${alta?`<label class="consent"><input type="checkbox" id="lacepto"> <span>Acepto que mis datos de entrenamiento y salud (lesiones, molestias, check-in) se guarden para preparar y ajustar mi plan. Solo los veo yo y quien gestiona Claude Coach, no se publican y puedo pedir que se borren cuando quiera.</span></label>`:""}
+      <button class="btn" id="${alta?"registrar":"entrar"}" style="margin-top:14px">${alta?"Crear cuenta":"Entrar"}</button>
+      ${msg?`<p class="small" style="color:${ok?"var(--green)":"var(--red)"}">${esc(msg)}</p>`:""}
+      <p class="small muted" style="text-align:center;margin:12px 0 0">${alta?`¿Ya tienes cuenta? <a href="#" data-modo="entrar">Entrar</a>`:`¿Primera vez? <a href="#" data-modo="alta">Crear cuenta</a>`}</p>
     </div></div>`;
 }
+// Tras entrar: si es una cuenta nueva sin plan, va al alta
+let PERFIL_OK=null;   // null = aún no se sabe · false = cuenta nueva sin perfil
+function sinPlan(){ return PERFIL_OK===false && !PROPIO(); }
 
 /* ---------- interacción ---------- */
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2200); }
@@ -1289,14 +1450,32 @@ document.getElementById("nav").addEventListener("click",e=>{ const b=e.target.cl
 function sesionVista(){ const i=UI.dia; return ajustar(fuerzaDia(i)||sesionDe(i), semaforo(i), iso(fecha(i))); }
 
 app.addEventListener("click",async e=>{
-  const b=e.target.closest("button,[data-dia]"); if(!b) return;
+  const b=e.target.closest("button,[data-dia],a[data-modo]"); if(!b) return;
   const d=b.dataset, i=UI.dia;
   if(b.id==="entrar"){
     b.disabled=true;
     const {data,error}=await sb.auth.signInWithPassword({email:document.getElementById("lemail").value.trim(), password:document.getElementById("lpass").value});
     if(error){ vLogin("No se pudo entrar: "+error.message); return; }
-    USER=data.user; render(); cargar(); return; }
-  if(b.id==="salir"){ await sb.auth.signOut(); USER=null; try{ localStorage.removeItem(CK); }catch(_){} vLogin(); return; }
+    USER=data.user; app.innerHTML=`<p class="muted" style="text-align:center;margin-top:40vh">Cargando…</p>`; cargar(); return; }
+  if(d.modo){ e.preventDefault(); vLogin("", d.modo==="alta"); return; }
+  if(b.id==="registrar"){
+    const email=document.getElementById("lemail").value.trim(), pass=document.getElementById("lpass").value;
+    if(!document.getElementById("lacepto").checked){ vLogin("Para crear la cuenta tienes que aceptar el uso de tus datos.", true); return; }
+    if(pass.length<8){ vLogin("La contraseña necesita al menos 8 caracteres.", true); return; }
+    b.disabled=true;
+    const {data,error}=await sb.auth.signUp({email, password:pass, options:{emailRedirectTo:location.origin+location.pathname, data:{consentimiento:new Date().toISOString()}}});
+    if(error){ vLogin("No se pudo crear la cuenta: "+error.message, true); return; }
+    if(!data.session){ vLogin("✉️ Te hemos mandado un email. Abre el enlace para confirmar tu cuenta y vuelve aquí para entrar.", false, true); return; }
+    USER=data.user; PERFIL_OK=false; render(); return; }
+  if(d.copiar){ const txt=d.copiar==="alta"?textoAlta():textoRevision(); copiar(txt, "txt-"+d.copiar); return; }
+  if(d.pegar){ const msg=document.getElementById("pegar-msg"), txt=document.getElementById("pegar-plan").value;
+    if(!txt.trim()){ msg.textContent="Primero pega la respuesta de Claude."; return; }
+    b.disabled=true; msg.style.color=""; msg.textContent="Guardando…";
+    try{ const nuevo=await guardarPlanClaude(txt); PERFIL_OK=true; UI.pegado=""; UI.tab="hoy"; UI.dia=HOY; render(); window.scrollTo(0,0);
+      toast(nuevo?"¡Plan guardado! Ya lo tienes en Hoy y Semana":"Plan actualizado"); cargar(); }
+    catch(err){ b.disabled=false; msg.style.color="var(--red)"; msg.textContent=err.message; }
+    return; }
+  if(b.id==="salir"){ await sb.auth.signOut(); USER=null; try{ localStorage.removeItem(CK); localStorage.removeItem(PK); }catch(_){} location.reload(); return; }
   if(d.sc){ const r=tocar(i); r.checkin={...(r.checkin||{}),[d.sc]:+d.v}; saveReg(r.fecha); render(); return; }
   if(d.com){ const s=clone(semana()); s.comodin=d.com; setSemana(s); render(); return; }
   if(d.cu){ document.querySelectorAll("[data-cu]").forEach(x=>x.classList.toggle("on",x===b)); return; }
@@ -1328,7 +1507,7 @@ app.addEventListener("click",async e=>{
     const nota=document.getElementById("aus-nota").value.trim();
     guardarAusencias([...(A.ausencias||[]), {tipo:t, desde:de, hasta:ha, nota}], `Ausencia añadida: ${AUS[t][1]} del ${de} al ${ha}${nota?" · "+nota:""}`); toast("Guardado: el plan se ha adaptado"); return; }
   if(d.ausdel!==undefined){ const l=[...(A.ausencias||[])], x=l.splice(+d.ausdel,1)[0]; guardarAusencias(l, `Ausencia quitada: ${AUS[x.tipo][1]} del ${x.desde} al ${x.hasta}`); toast("Quitado"); return; }
-  if(d.resetsem){ const s=clone(semana()); s.orden=[...DEF_ORDEN]; delete s.segunda; delete s.dias; setSemana(s); render(); toast("Semana tipo"); return; }
+  if(d.resetsem){ const s=PROPIO()?semBase():clone(semana()); if(!PROPIO()){ s.orden=[...DEF_ORDEN]; delete s.segunda; delete s.dias; } setSemana(s); render(); toast("Semana tipo"); return; }
   if(d.mv){ e.stopPropagation(); const [a,b]=d.mv.split("-").map(Number);
     UI.mover=(UI.mover&&UI.mover.i===a&&UI.mover.j===b)?null:{i:a,j:b}; render(); return; }
   if(d.dia!==undefined){
@@ -1341,7 +1520,7 @@ app.addEventListener("click",async e=>{
     UI.dia=k; UI.tab="hoy"; render(); window.scrollTo(0,0); }
 });
 app.addEventListener("keydown",e=>{ if(e.key==="Enter" && (e.target.id==="lpass"||e.target.id==="lemail")) document.getElementById("entrar")?.click(); });
-app.addEventListener("input",e=>{ const el=e.target; if(el.dataset.rg===undefined) return;
+app.addEventListener("input",e=>{ const el=e.target; if(el.id==="pegar-plan"){ UI.pegado=el.value; return; } if(el.dataset.rg===undefined) return;
   const x=+el.value, w=el.closest(".barra"); w.classList.remove("vacia"); const b=w.querySelector(".barra-v"); b.textContent=x+" · "+NIVEL[x]; b.dataset.niv=x; });
 app.addEventListener("change",e=>{
   const el=e.target, i=UI.dia;
@@ -1373,7 +1552,7 @@ window.addEventListener("online",()=>{ if(USER) reintentarPendientes(); });
   const {data}=await sb.auth.getSession();
   if(!data.session){ vLogin(); return; }
   USER=data.session.user;
-  cacheLoad(); construirSesiones(); render();
+  if(cacheLoad()){ construirSesiones(); render(); } else app.innerHTML=`<p class="muted" style="text-align:center;margin-top:40vh">Cargando…</p>`;
   cargar();
 })();
 </script>

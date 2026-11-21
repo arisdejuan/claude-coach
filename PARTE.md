@@ -4,7 +4,7 @@ Esta guía la sigue una tarea programada de Claude en la nube **cada mañana**. 
 repositorio: se leen de Supabase con `sync/revision.py`. Trabajas solo, sin nadie a quien preguntar: sé prudente.
 
 ## Pasos
-1. `pip install -q -r sync/requirements.txt`
+1. `python -m pip install -q -r sync/requirements.txt`
 2. `python sync/revision.py contexto` → quién es, lesiones, objetivos, semana tipo. Síguelo siempre.
 3. `python sync/revision.py bitacora 15` → cambios recientes y su porqué. No deshagas lo que el atleta decidió.
 4. `python sync/revision.py datos > /tmp/datos.json` y léelo. Céntrate en **ayer** y en **lo que queda de semana**:

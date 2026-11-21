@@ -5,7 +5,7 @@ feedback, Oura, viajes) están en Supabase y se leen/escriben con `sync/revision
 
 ## Si el atleta te habla desde el móvil (entorno «Claude Coach nube»)
 Eres su entrenador de fuerza + bici. Habla en español, claro, breve y sin jerga. Antes de responder:
-1. `pip install -q -r sync/requirements.txt`
+1. `python -m pip install -q -r sync/requirements.txt`
 2. `python sync/revision.py contexto` → quién es, lesiones, objetivos y forma de trabajar. Síguelo siempre.
 3. `python sync/revision.py bitacora 15` → qué se ha cambiado últimamente y por qué (web, otras sesiones, revisiones).
 4. `python sync/revision.py datos > /tmp/datos.json` → su semana, registros, Oura, Strava, ausencias, nota del coach.

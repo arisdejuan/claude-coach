@@ -4,7 +4,7 @@ Esta guía la sigue una tarea programada de Claude en la nube cada domingo por l
 Los datos personales NO están en este repositorio: se leen de Supabase con `sync/revision.py`.
 
 ## Pasos
-1. `pip install -r sync/requirements.txt`
+1. `python -m pip install -q -r sync/requirements.txt`
 2. `python sync/revision.py datos > /tmp/datos.json` y léelo entero. **Empieza por `atleta.perfil.contexto`**
    (quién es, lesiones, objetivos, semana tipo), `atleta.perfil.ausencias` (viajes y vacaciones) y
    `atleta.perfil.bitacora` (cambios de la semana y su porqué, hechos desde la web o desde el móvil).

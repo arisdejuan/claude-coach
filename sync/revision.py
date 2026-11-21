@@ -10,6 +10,7 @@ Variables: SUPABASE_URL, SUPABASE_SERVICE_KEY, COACH_EMAIL
   python sync/revision.py ausencia list
   python sync/revision.py ausencia add DESDE HASTA TIPO "nota"   (TIPO: gym, nada, vacas, esqui, enfermo)
   python sync/revision.py ausencia del DESDE
+  python sync/revision.py rm NOMBRE KG [OBJETIVO]  → guarda un máximo (1RM) y su objetivo (p. ej. rm banca 115 120)
   python sync/revision.py bitacora [N]       → últimas N entradas de la bitácora del coach (qué se cambió y por qué)
   python sync/revision.py bitacora add "texto" [origen]   → apunta una entrada (origen: móvil, revisión, ordenador…)
 
@@ -201,6 +202,24 @@ def contexto(args):
         print(p.get("contexto") or "(sin contexto guardado)")
 
 
+def rm(args):
+    """Guarda un 1RM (y opcionalmente su objetivo) en el perfil. Nombres: sentadilla, pesoMuerto, press, banca…"""
+    if len(args) < 2:
+        raise SystemExit(__doc__)
+    uid = usuario()
+    p = perfil_de(uid)
+    nombre, kg = args[0], float(args[1].replace(",", "."))
+    p.setdefault("rm", {})[nombre] = kg
+    p.setdefault("rmInicial", {}).setdefault(nombre, kg)
+    texto = f"Máximo de {nombre}: {kg:g} kg"
+    if len(args) > 2:
+        p.setdefault("objetivos", {})[nombre] = float(args[2].replace(",", "."))
+        texto += f" (objetivo {args[2]} kg)"
+    apuntar(p, texto)
+    actualizar("atletas", f"user_id=eq.{uid}", {"perfil": p})
+    print("Guardado:", texto)
+
+
 def ausencia(args):
     uid = usuario()
     p = perfil_de(uid)
@@ -244,6 +263,8 @@ if __name__ == "__main__":
         contexto(["guardar", sys.argv[2]])
     elif len(sys.argv) >= 2 and sys.argv[1] == "bitacora":
         bitacora(sys.argv[2:])
+    elif len(sys.argv) >= 2 and sys.argv[1] == "rm":
+        rm(sys.argv[2:])
     elif len(sys.argv) >= 2 and sys.argv[1] == "ausencia":
         ausencia(sys.argv[2:])
     else:

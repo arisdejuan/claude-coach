@@ -300,12 +300,14 @@ function construirSesiones(){
   if(PROPIO()) return construirPropio();
   const pct=(rm,p)=>r25(rm*p), F=A.ftp, w=p=>Math.round(F*p);
   SES = {
-    fa:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza A", sub:"Pierna pesada + tobillo", dur:80, int:"alta", obj:"Fuerza máxima de pierna: la sentadilla a RPE 7-8 con técnica limpia y el tobillo/sóleo trabajado sin dolor. Sal con energía, no reventado.",
+    fa:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza A", sub:"Pierna pesada + press de banca + tobillo", dur:90, int:"alta", obj:"Fuerza máxima de pierna (sentadilla a RPE 7-8 con técnica limpia) y mantener o subir el press de banca, con el tobillo/sóleo trabajado sin dolor. Sal con energía, no reventado.",
       calentamiento:["Movilidad de tobillo en pared · 2 × 10 por lado","Cadera 90/90 · 2 × 5 por lado",
         "Puente de glúteo · 2 × 10","Sentadilla goblet con talones elevados y pausa abajo · 2 × 5"],
       ej:[
         {n:"Cinta: caminar en inclinación", s:1, r:"10'", kg:null, d:"—", nota:"Inclinación 8-10 %, 5,5-6 km/h. Semana 1: solo caminar.", cinta:true},
         {n:"Sentadilla con talones elevados", s:4, r:"4", kg:pct(A.rm.sentadilla,0.79), d:"3'", q:"max", nota:"Cuña bajo los talones. RPE 7-8: deja 2-3 reps en reserva.", main:true},
+        ...(A.rm.banca?[{n:"Press de banca", q:"max", s:4, r:"5", kg:pct(A.rm.banca,0.78), d:"2'30", nota:"RPE 7-8. Escápulas atrás y pies firmes. En el descanso: las dominadas de abajo (superserie).", main:true},
+        {n:"Dominadas pronas con excéntrico lento", q:"hip", s:3, r:"6", kg:null, d:"—", nota:"Superserie con el press de banca: sube explosivo, baja en 3\"."}]:[]),
         {n:"Sentadilla búlgara", q:"hip", s:3, r:"6/pierna", kg:"2×20", d:"2'", nota:"Empieza por la pierna derecha. Rango sin dolor. Primera serie ligera de prueba.", main:true},
         {n:"Isometría: sentadilla española", q:"ten", s:4, r:"40\"", kg:null, d:"1'30", nota:"Banda detrás de las rodillas. Tensión 7/10."},
         {n:"Sóleo sentado (máquina)", q:"ten", s:3, r:"12", kg:"60", d:"1'30", nota:"Bajada lenta de 3\". Pausa abajo."},
@@ -386,12 +388,13 @@ function construirSesiones(){
         {n:"Tempo", reps:3, min:10, lo:w(.8), hi:w(.86), z:3, rec:5, recW:w(.6)},
         {n:"Rodaje Z2", reps:1, min:45, lo:w(.57), hi:w(.69), z:2}
       ]},
-    gym:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza C", sub:"Tobillo, core y movilidad (sin cargas pesadas)", dur:45, int:"baja", obj:"Tobillo, core y movilidad sin cargas: salir más suelto, no más cansado.",
+    gym:{ ico:"🏋️", tipo:"fuerza", titulo:"Fuerza C", sub:"Tobillo, core, movilidad y tren superior ligero", dur:50, int:"baja", obj:"Tobillo, core y movilidad, y un poco de press para el tren superior: salir más suelto, no más cansado.",
       ej:[
         {n:"Movilidad de tobillo con banda", q:"ten", s:3, r:"10/lado", kg:null, d:"30\"", nota:"Rodilla hacia la punta del pie, sin dolor."},
         {n:"Equilibrio a una pierna sobre cojín", q:"ten", s:3, r:"30\"/lado", kg:null, d:"30\"", nota:"Útil para el esquí."},
         {n:"Step-down lateral lento", q:"ten", s:3, r:"8/pierna", kg:null, d:"1'", nota:"Rodilla alineada con el pie."},
         {n:"Puente de glúteo a una pierna", q:"hip", s:3, r:"10/pierna", kg:"10", d:"1'", nota:"Pausa arriba 2\"."},
+        {n:"Press de banca con mancuernas", q:"hip", s:3, r:"8", kg:"2×32", d:"1'30", nota:"RPE 7, sin fallo: tren superior sin cansar las piernas."},
         {n:"Plancha lateral", q:"core", s:3, r:"30\"/lado", kg:null, d:"45\"", nota:""}
       ]},
     descanso:{ ico:"😴", tipo:"activo", titulo:"Descanso", sub:"Recupera", dur:0, int:"baja", obj:"Recuperar del todo: hoy también se entrena descansando.",
@@ -1176,7 +1179,8 @@ function vProgreso(){
     ${g("Peso",pesoAct,A.pesoObj,(A.pesoInicial||pesoAct+1),"kg")}
     ${g("Sentadilla 1RM",A.rm.sentadilla,O.sentadilla,A.rm.sentadilla-6,"kg")}
     ${g("Peso muerto 1RM",A.rm.pesoMuerto,O.pesoMuerto,A.rm.pesoMuerto-7,"kg")}
-    ${g("Press de hombro 1RM",A.rm.press,O.press,A.rm.press-2.5,"kg")}`}
+    ${g("Press de hombro 1RM",A.rm.press,O.press,A.rm.press-2.5,"kg")}
+    ${A.rm.banca?g("Press de banca 1RM",A.rm.banca,O.banca,num((A.rmInicial||{}).banca)??A.rm.banca-5,"kg"):""}`}
     <div class="row" style="margin-top:6px"><input id="pesoCorp" inputmode="decimal" placeholder="Tu peso de hoy (kg)" value="${esc((REG[iso(HOYD)]||{}).pesoCorporal||"")}"><button class="btn small" id="gpeso">Guardar</button></div>
   </div>
   ${A.objetivoMes?`<div class="card"><h3>🗓 Objetivo del mes</h3><p class="muted" style="margin:6px 0 0">${esc(A.objetivoMes)}</p></div>`:""}

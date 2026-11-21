@@ -4,6 +4,7 @@ Variables: SUPABASE_URL, SUPABASE_SERVICE_KEY, COACH_EMAIL
 
   python sync/revision.py datos              → imprime en JSON lo necesario para revisar la semana
   python sync/revision.py guardar nota.json  → guarda la nota del coach (y ajustes) para que salga en la web
+  python sync/revision.py parte parte.json   → guarda el parte diario de la mañana (y reordena lo que queda de semana)
   python sync/revision.py contexto           → imprime el contexto del atleta (lesiones, objetivos, preferencias…)
   python sync/revision.py contexto_guardar archivo.md → reemplaza ese contexto (solo si el atleta lo pide)
   python sync/revision.py ausencia list
@@ -20,6 +21,14 @@ Formato de nota.json:
   "objetivoMes": "…",                                   # opcional
   "semana_siguiente": {"dias": [["fa","z2"],["s1"],["pil"],["fb"],["s2"],["larga"],["com"]]}  # opcional
 }
+Formato de parte.json (parte diario, ver PARTE.md):
+{
+  "texto": "Parte de hoy (2-3 párrafos cortos)",
+  "cambios": ["Salida larga movida al domingo: el sábado hiciste fuerza por la lluvia"],   # opcional
+  "semana_actual": {"dias": [[...7 listas...]], "comodin": "bici|gym|descanso"}            # opcional
+}
+Los días ya pasados de semana_actual no se tocan (se conservan como estaban).
+
 Ids válidos de sesión: fa, fb (fuerza), s1, s2 (rodillo series), z2 (rodillo Z2 opcional),
 pil (pilates), larga (salida larga), com (comodín).
 """
@@ -54,14 +63,17 @@ def datos():
     desde = (hoy - dt.timedelta(days=28)).isoformat()
     atleta = leer("atletas", f"user_id=eq.{uid}&select=nombre,perfil")
     acts = leer("actividades", f"user_id=eq.{uid}&fecha=gte.{desde}&select=fecha,tipo,nombre,duracion_s,"
-                "distancia_m,desnivel_m,potencia_media,potencia_norm,fc_media,fc_max,carga&order=fecha")
+                "distancia_m,desnivel_m,potencia_media,potencia_norm,fc_media,fc_max,carga,raw&order=fecha")
     out = {
         "hoy": hoy.isoformat(),
         "lunes_esta_semana": L.isoformat(),
         "lunes_semana_siguiente": (L + dt.timedelta(days=7)).isoformat(),
         "nota": "Semanas: si no hay fila, se usa la semana tipo (fa,s1,pil,fb,s2,larga,com con z2 el día de fa). "
                 "registros: feedback (rpe, cumpl, com), checkin (piernas y tobillo/rodilla de 1 a 5: 1 = molestan/cargadas, 5 = perfectos), pesos reales, rpeEj, sets. "
-                "actividades: carga = TSS estimado. atleta.perfil.contexto = quién es y sus lesiones/objetivos (léelo SIEMPRE). "
+                "actividades: carga = TSS estimado; raw.detalle (salidas en bici) = vueltas [{s segundos, w vatios, fc pulso medio, "
+                "fcmax}], bloques de trabajo (≥88 % FTP) [{reps, s, w, fc, fc_ini, fc_fin}], desacople % (Pa:HR, deriva del pulso "
+                "frente a vatios entre 1.ª y 2.ª mitad; <5 % buena base) y con_pulso. "
+                "semana_actual_dias = lo que hay previsto cada día de esta semana (lunes → domingo). atleta.perfil.contexto = quién es y sus lesiones/objetivos (léelo SIEMPRE). "
                 "atleta.perfil.ausencias = viajes/vacaciones [{tipo,desde,hasta,nota}]: esos días la web ya adapta las sesiones "
                 "y una semana con 3+ días fuera cuenta como descarga (el ciclo 3+1 se reinicia). "
                 "atleta.perfil.bitacora = historial de cambios y su porqué (web, móvil, revisiones): léelo antes de decidir.",
@@ -70,6 +82,7 @@ def datos():
         "registros": leer("registros", f"user_id=eq.{uid}&fecha=gte.{desde}&select=fecha,datos&order=fecha"),
         "oura": leer("oura_diario", f"user_id=eq.{uid}&fecha=gte.{desde}&select=fecha,readiness,sueno_score,sueno_horas,vfc,fc_reposo,temperatura&order=fecha"),
         "actividades": acts,
+        "semana_actual_dias": dias_semana(uid, L)[0],
         "planificados": leer("planificados", f"user_id=eq.{uid}&fecha=gte.{hoy.isoformat()}&select=fecha,titulo,dur_min,extra&order=fecha"),
     }
     print(json.dumps(out, ensure_ascii=False, indent=1, default=str))
@@ -104,6 +117,47 @@ def guardar_nota(ruta):
         d.update({"dias": dias, "comodin": ss.get("comodin") or d.get("comodin") or "bici"})
         guardar("semanas", [{"user_id": uid, "semana": sig.isoformat(), "datos": d, "actualizado": ahora()}], "user_id,semana")
         print("Semana", sig, "reorganizada:", dias)
+
+
+DEF_DIAS = [["fa", "z2"], ["s1"], ["pil"], ["fb"], ["s2"], ["larga"], ["com"]]
+
+
+def dias_semana(uid, L):
+    """Días de la semana del lunes L (7 listas de ids) y los datos guardados de esa semana."""
+    previa = leer("semanas", f"user_id=eq.{uid}&semana=eq.{L.isoformat()}&select=datos")
+    d = (previa[0]["datos"] if previa else {}) or {}
+    if d.get("dias"):
+        return d["dias"], d
+    orden = d.get("orden") or [x[0] for x in DEF_DIAS]
+    seg = d.get("segunda") or [("z2" if i == orden.index("fa") else None) if "fa" in orden else None for i in range(7)]
+    return [[x for x in (orden[i], seg[i]) if x] for i in range(7)], d
+
+
+def guardar_parte(ruta):
+    uid = usuario()
+    n = json.load(open(ruta, encoding="utf-8"))
+    if not (n.get("texto") or "").strip():
+        raise SystemExit("El parte necesita 'texto'")
+    hoy = dt.date.today()
+    L = lunes(hoy)
+    p = perfil_de(uid)
+    cambios = [str(a) for a in n.get("cambios", [])][:6]
+    sa = n.get("semana_actual")
+    if sa and sa.get("dias"):
+        dias = sa["dias"]
+        if len(dias) != 7 or any(i not in IDS for d in dias for i in d):
+            raise SystemExit(f"semana_actual.dias no válida: {dias}")
+        antes, d = dias_semana(uid, L)
+        k = hoy.weekday()
+        dias = antes[:k] + dias[k:]          # lo ya pasado no se toca
+        d.update({"dias": dias, "comodin": sa.get("comodin") or d.get("comodin") or "bici"})
+        d.pop("orden", None); d.pop("segunda", None)
+        guardar("semanas", [{"user_id": uid, "semana": L.isoformat(), "datos": d, "actualizado": ahora()}], "user_id,semana")
+        print("Semana", L, "reorganizada:", dias)
+    p["parte"] = {"fecha": hoy.isoformat(), "texto": n["texto"].strip(), "cambios": cambios}
+    apuntar(p, "Parte del día" + (": " + "; ".join(cambios) if cambios else " (sin cambios)"), "parte")
+    actualizar("atletas", f"user_id=eq.{uid}", {"perfil": p})
+    print("Parte guardado para", hoy)
 
 
 def apuntar(p, texto, origen="Claude"):
@@ -180,6 +234,8 @@ def ausencia(args):
 if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "datos":
         datos()
+    elif len(sys.argv) >= 3 and sys.argv[1] == "parte":
+        guardar_parte(sys.argv[2])
     elif len(sys.argv) >= 3 and sys.argv[1] == "guardar":
         guardar_nota(sys.argv[2])
     elif len(sys.argv) >= 2 and sys.argv[1] == "contexto":

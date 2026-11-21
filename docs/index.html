@@ -162,6 +162,7 @@ nav button.on{color:var(--accent)}
 .kpi div{background:var(--card2);border-radius:12px;padding:9px 10px} .kpi b{display:block;font-size:17px} .kpi span{font-size:11.5px;color:var(--muted)}
 .up{color:var(--green)} .down{color:var(--red)}
 .concl li{margin:5px 0}
+.det summary{cursor:pointer;margin-top:8px}.nota summary{cursor:pointer}
 .nota{border-color:#3dd6c655;background:#3dd6c60d} .nota p{margin:6px 0;font-size:14px} .nota ul{margin:4px 0;padding-left:18px}
 .forma .fila{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
 .forma .val{text-align:right;white-space:nowrap} .forma .val b{font-size:22px} .forma .val span{font-size:12px;color:var(--muted)}
@@ -833,7 +834,39 @@ function vsBici(s,a){
     ${fila("Carga (puntos)", pC, rC||"–", pC?flecha(rC/pC-1,.15):"")}
     ${pIF?fila("Intensidad media", Math.round(pIF*A.ftp)+" W · "+Math.round(pIF*100)+" %", w?Math.round(w)+" W · "+Math.round(rIF*100)+" %":"–", dI!=null?flecha(dI,.04):""):""}
     ${a.fc_media?fila("Pulso medio", esZ2&&zf[1]?"≤ "+zf[1]+" ppm":"—", Math.round(a.fc_media)+" ppm"):""}
-    </table><div style="margin-top:6px">${txt}</div></div>`;
+    </table><div style="margin-top:6px">${txt}</div>${detalleBici(s,a)}</div>`;
+}
+// Detalle por intervalos (Strava: vueltas + pulso segundo a segundo, calculado en sync/strava.py)
+const segTxt = x => x<90 ? Math.round(x)+'"' : Math.round(x/60)+"'";
+function detalleBici(s,a){
+  const d=a.raw&&a.raw.detalle; if(!d) return "";
+  const B=d.bloques||[], esZ2=!!(s&&s.pasos&&s.pasos.every(p=>p.z<=2));
+  const obj=s&&s.pasos ? s.pasos.filter(p=>p.lo>=A.ftp*.88).sort((x,y)=>y.lo-x.lo)[0] : null;
+  const v=[]; let h="";
+  if(B.length){
+    const enObj=obj?B.filter(b=>b.w>=obj.lo*.98&&b.w<=obj.hi*1.02).length:null;
+    h=`<table><tr><td class="muted small">Bloque</td><td class="muted small">Trabajo · vatios</td><td class="muted small">Pulso medio → final</td></tr>`+
+      B.map((b,k)=>{ const c=obj?(b.w<obj.lo*.98?"down":b.w>obj.hi*1.02?"up":"ok"):"";
+        return `<tr><td>${k+1}</td><td class="${c}">${b.reps>1?b.reps+" × "+segTxt(b.s/b.reps):segTxt(b.s)} · ${b.w} W</td><td>${b.fc?b.fc+" → "+(b.fc_fin||"–")+" ppm":"–"}</td></tr>`; }).join("")+`</table>`;
+    if(obj) v.push(enObj===B.length?`<b class="ok">🎯 Vatios clavados:</b> todos los bloques dentro del objetivo (${obj.lo}-${obj.hi} W).`
+      : `<b class="up">🎯 Vatios:</b> ${enObj} de ${B.length} bloques dentro del objetivo (${obj.lo}-${obj.hi} W).`);
+    const c=B.filter(b=>b.fc);
+    if(c.length>=2 && Math.abs(c[c.length-1].w/c[0].w-1)<=.05){
+      const dF=c[c.length-1].fc-c[0].fc;
+      v.push(dF<=6?`<b class="ok">❤️ Pulso estable:</b> del primer al último bloque solo ${dF>0?"+":""}${dF} ppm con los mismos vatios. Aguantaste bien.`
+        : dF<=12?`<b class="ok">❤️ Deriva normal:</b> el pulso subió ${dF} ppm del primer al último bloque con los mismos vatios (fatiga lógica de una sesión dura).`
+        : `<b class="up">❤️ Deriva alta:</b> +${dF} ppm del primer al último bloque con los mismos vatios. Puede ser calor, poca bebida o cansancio acumulado: el coach lo tendrá en cuenta.`);
+    }
+  }
+  if(d.desacople!=null && (esZ2 || !B.length)){
+    const x=d.desacople;
+    v.push(x<5?`<b class="ok">🫀 Desacople ${x} %:</b> el pulso apenas subió para los mismos vatios. Base aeróbica sólida.`
+      : x<=8?`<b class="up">🫀 Desacople ${x} %:</b> aceptable; en salidas largas es normal que suba algo. Por debajo de 5 % = base muy sólida.`
+      : `<b class="up">🫀 Desacople ${x} %:</b> el pulso se disparó en la 2.ª mitad para los mismos vatios: falta base, calor, poca comida o bebida, o cansancio.`);
+  }
+  if(!d.con_pulso) v.push(`<b class="up">⚠️ Sin pulso:</b> esta actividad no tiene pulso. Revisa que la banda esté emparejada con el Edge; sin pulso no puedo ver la deriva.`);
+  if(!h && !v.length) return "";
+  return `<details class="det" open><summary><b>🔍 Por intervalos</b></summary>${h}${v.map(x=>`<div style="margin-top:6px">${x}</div>`).join("")}</details>`;
 }
 function vsFuerza(s,r,f){
   const sets=r.sets||{}, marcadas=Object.values(sets).some(Boolean);
@@ -884,6 +917,7 @@ function vHoy(){
   const par=emparejar(lista, actDia(f));
   const acts=actDia(f).filter(a=>!par.includes(a));
   return `${header()}
+  ${i===HOY?vParte():""}
   ${vOura(i,f,c)}
   <h2>${i===HOY?"Hoy":DIAS[i]} · ${fecha(i).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</h2>
   <div class="banner ${cls}"><b>${txt}</b><span class="muted">${sem.motivos.map(esc).join(" · ")}</span>
@@ -958,7 +992,7 @@ function vSemana(){
   const cambiada=PROPIO() ? !!sm.dias && JSON.stringify(sm.dias)!==JSON.stringify(A.plan.semana) : !!sm.dias || !!sm.segunda || (sm.orden||DEF_ORDEN).join()!==DEF_ORDEN.join();
   const selS = sel ? sesionesDia(sel.i)[sel.j] : null;
   const dura = l => l.some(x=>x.int==="alta");
-  return `${header()}${vNota()}<h2>Tu semana</h2>
+  return `${header()}${vParte()}${vSemanaVa()}${vNota(true)}<h2>Tu semana</h2>
   <div class="howto">${!sel
     ? "↕️ <b>Para mover un entreno:</b> toca <b>Mover</b> y luego el día donde lo quieres. Un día puede tener varias sesiones o ninguna.<br>👉 Toca un día para ver sus sesiones."
     : `Toca el día donde quieres poner <b>${selS?selS.titulo:""}</b> (o ✕ para cancelar).`}</div>
@@ -1226,16 +1260,66 @@ function informe(){
     ${coms.length?`<h3>📝 Tus comentarios</h3><ul>${coms.map(([D,c])=>`<li><span class="muted">${DIAS[(D.getDay()+6)%7]}:</span> ${esc(c)}</li>`).join("")}</ul>`:""}
   </details>`;
 }
-function vNota(){
+const parrafos = t => esc(t).split(/\n\s*\n/).map(p=>`<p>${p.replace(/\n/g,"<br>")}</p>`).join("");
+function vNota(plegada){
   const n=A.notaCoach; if(!n||!n.texto) return "";
   const fd=n.fecha?new Date(n.fecha+"T00:00:00").toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"}):"";
-  return `<div class="card nota"><div class="row between"><h3>🧑‍🏫 Nota del coach</h3><span class="muted small">${fd}</span></div>
-    <div style="margin-top:8px">${esc(n.texto).split(/\n\s*\n/).map(p=>`<p>${p.replace(/\n/g,"<br>")}</p>`).join("")}</div>
-    ${(n.ajustes||[]).length?`<div class="small"><b>Ajustes para esta semana:</b><ul>${n.ajustes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}</div>`;
+  const cuerpo=`<div style="margin-top:8px">${parrafos(n.texto)}</div>
+    ${(n.ajustes||[]).length?`<div class="small"><b>Ajustes para esta semana:</b><ul>${n.ajustes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}`;
+  if(plegada) return `<details class="card nota"><summary><b>🧑‍🏫 Revisión del domingo</b> <span class="muted small">· ${fd}</span></summary>${cuerpo}</details>`;
+  return `<div class="card nota"><div class="row between"><h3>🧑‍🏫 Revisión del domingo</h3><span class="muted small">${fd}</span></div>${cuerpo}</div>`;
+}
+// Parte diario del coach (rutina de Claude en la nube cada mañana → perfil.parte)
+function vParte(){
+  const p=A.parte; if(!p||!p.texto||!p.fecha) return "";
+  const dias=Math.round((HOYD-new Date(p.fecha+"T00:00:00"))/864e5); if(dias<0||dias>1) return "";
+  return `<div class="card nota"><div class="row between"><h3>☀️ Parte del coach</h3><span class="muted small">${dias?"de ayer":"de hoy"}</span></div>
+    <div style="margin-top:8px">${parrafos(p.texto)}</div>
+    ${(p.cambios||[]).length?`<div class="small"><b>Cambios en tu semana:</b><ul>${p.cambios.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><span class="muted">Si no te encajan, muévelas en la pestaña Semana.</span></div>`:""}</div>`;
+}
+// Cómo va la semana: se calcula sola con lo hecho (Strava + feedback) frente a lo previsto
+function hechaSes(f,x){
+  const ac=actDia(f), r=REG[f]||{};
+  if(x.tipo==="bici") return ac.some(esBici);
+  if(x.tipo==="fuerza") return !!(r.feedback||Object.values(r.sets||{}).some(Boolean)||ac.some(a=>/weight|workout|crossfit/i.test(a.tipo||"")));
+  return !!(r.feedback||ac.length);
+}
+const tipoAct = a => esBici(a)?"bici":/weight|workout|crossfit/i.test(a.tipo||"")?"fuerza":/run/i.test(a.tipo||"")?"carrera":/pilates|yoga/i.test(a.tipo||"")?"pilates":"otra actividad";
+const clave = x => !x.opcional && (x.int==="alta" || x.id==="larga" || x.tipo==="fuerza");
+function vSemanaVa(){
+  const filas=[], pend=[], libres=[]; let prev=0, hechas=0;
+  for(let i=0;i<7;i++){
+    const f=iso(fecha(i)), l=sesionesDia(i).filter(x=>!x.opcional&&x.dur), ac=actDia(f);
+    if(i>HOY){ if(!l.length||l.every(x=>x.int==="baja"||x.comodin)) libres.push(i); continue; }
+    l.forEach(x=>{ prev++; const ok=hechaSes(f,x); if(ok){ hechas++; filas.push(`✅ <b>${DIAS[i]}</b> ${x.titulo}`); return; }
+      const otro=ac.find(a=>tipoAct(a)!==x.tipo);
+      if(i===HOY && !otro){ filas.push(`⏳ <b>Hoy</b> ${x.titulo}: pendiente`); return; }
+      filas.push(otro?`🔄 <b>${i===HOY?"Hoy":DIAS[i]}</b> ${x.titulo} → hiciste ${tipoAct(otro)}`:`❌ <b>${DIAS[i]}</b> ${x.titulo}: no hecha`);
+      if(clave(x)) pend.push({i,x}); });
+    if(!l.length) ac.forEach(a=>filas.push(`➕ <b>${DIAS[i]}</b> extra: ${esc(a.nombre||tipoAct(a))}`));
+  }
+  const V=semanaVol(LUNES), H=V.hecho, P=V.plan, rec=[];
+  const prio = x => x.id==="larga"?0 : x.tipo==="bici"?1 : 2, usados=new Set();   // la salida larga primero (Mallorca)
+  pend.sort((a,b)=>prio(a.x)-prio(b.x)).forEach(({i,x})=>{
+    const libre=libres.filter(k=>!usados.has(k)), finde=libre.filter(k=>k>=5);
+    const hueco=(x.id==="larga"&&finde.length?finde:libre).find(k=>!sesionesDia(k-1).some(y=>y.int==="alta")||x.int!=="alta");
+    if(hueco!=null) usados.add(hueco);
+    rec.push(hueco!=null?`👉 Te falta <b>${x.titulo}</b> (${i===HOY?"era hoy":"era el "+DIAS[i]}). Mejor hueco: <b>${DIAS[hueco]}</b>${sesionesDia(hueco).length?` en lugar de ${sesionesDia(hueco).map(y=>y.titulo).join(" + ")}`:""}. Muévela abajo con «Mover».`
+      : `👉 <b>${x.titulo}</b> se ha quedado sin hacer y no hay hueco sin juntar dos días duros: mejor no recuperarla. Sigue con lo que queda.`);
+  });
+  if(!PROPIO() && P.carga){ const pc=Math.round(H.carga/P.carga*100);
+    if(pc>110) rec.push(`⚠️ Ya llevas el ${pc} % de la carga de bici prevista: lo que queda de semana, suave.`); }
+  const sem=semaforo(HOY); if(sem.nivel) rec.push(`${sem.nivel===2?"🔴":"🟠"} Hoy el semáforo está en ${sem.nivel===2?"rojo":"ámbar"}: ${sem.motivos.map(esc).join(" · ")}.`);
+  if(!rec.length) rec.push(prev&&hechas===prev?"💪 Semana al día: sigue así.":"Sin cambios que proponer: sigue con lo previsto.");
+  return `<div class="card"><h3>📆 Cómo va la semana</h3>
+    <p class="small" style="margin:6px 0">Sesiones: <b>${hechas} de ${prev}</b> hasta hoy${PROPIO()?"":` · bici <b>${fmtMin(H.min)}</b> de ${fmtMin(P.min)} · carga <b>${Math.round(H.carga)}</b> de ${Math.round(P.carga)} pts`} · fuerza <b>${H.series}</b> de ${P.series} series</p>
+    <ul class="concl small">${filas.map(x=>`<li>${x}</li>`).join("")}</ul>
+    <ul class="concl">${rec.map(x=>`<li>${x}</li>`).join("")}</ul>
+    <p class="muted small" style="margin:6px 0 0">Se actualiza solo con Strava y tu feedback.</p></div>`;
 }
 function vBitacora(){
   const b=(A.bitacora||[]).slice(-25).reverse();
-  const ico={web:"📱",móvil:"💬",movil:"💬",revisión:"🧑‍🏫",revision:"🧑‍🏫",ordenador:"💻"};
+  const ico={web:"📱",móvil:"💬",movil:"💬",revisión:"🧑‍🏫",revision:"🧑‍🏫",ordenador:"💻",parte:"☀️"};
   return `<details><summary>📓 Bitácora del coach${b.length?` · ${b.length}`:""}</summary>
     <p class="muted small" style="margin:4px 0 8px">Qué se ha cambiado en tu plan, cuándo y por qué: desde la web, desde Claude en el móvil o en la revisión del domingo.</p>
     ${b.map(e=>`<div class="bit"><span class="muted small">${ico[e.origen]||"🤖"} ${new Date(e.fecha).toLocaleString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})} · ${esc(e.origen||"")}</span><div>${esc(e.texto)}</div></div>`).join("")||`<p class="muted small">Todavía vacía.</p>`}</details>`;

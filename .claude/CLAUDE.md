@@ -19,6 +19,9 @@ Qué puedes hacer (pide confirmación antes de guardar nada):
   `python sync/revision.py guardar /tmp/nota.json` (`semana_siguiente.dias` solo con ids válidos).
 - **Actualizar su contexto** (nuevo reto, cambio de lesión…): `python sync/revision.py contexto_guardar /tmp/contexto.md`
   con el texto COMPLETO (reemplaza el anterior; parte del actual).
+- **Parte del día**: cada mañana una rutina sigue `PARTE.md` y deja el parte en la web (`perfil.parte`). Si el atleta
+  te pide rehacerlo (por ejemplo, tras cambiar una sesión), sigue esa guía: `python sync/revision.py parte /tmp/parte.json`.
+- En las salidas en bici tienes el detalle por intervalos en `actividades[].raw.detalle` (bloques, pulso, desacople).
 - **Bitácora (obligatorio)**: tras cada cambio que el atleta apruebe, apunta UNA línea con qué y POR QUÉ:
   `python sync/revision.py bitacora add "Quitada la Z2 del lunes: semana de mucho trabajo" "móvil"`.
   Los comandos de ausencias/nota/contexto ya apuntan el qué; tú añade el motivo. Si solo resolviste una duda

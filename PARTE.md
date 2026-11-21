@@ -13,6 +13,8 @@ repositorio: se leen de Supabase con `sync/revision.py`. Trabajas solo, sin nadi
    - **Actividades de Strava** de ayer frente a lo previsto (`semana_actual_dias`). En las salidas en bici mira
      `raw.detalle`: vatios de cada bloque frente al objetivo, pulso del primer al último bloque con los mismos vatios
      (deriva), `desacople` en rodajes y salidas largas (< 5 % buena base; > 8 % vigilar) y si falta el pulso.
+   - **Movilidad** (`registros[].datos.movilidad`: ejercicios hechos y `min`; `testMov` = test de tobillo/cadera):
+     si lleva días sin hacerla, recuérdaselo en una frase (objetivo 8' al día; prioridad cadera y tobillo derecho).
    - **Oura** de esta noche: recuperación, sueño, VFC y pulso en reposo frente a sus días anteriores (tendencia).
    - **Semana**: sesiones hechas, carga acumulada, qué sesiones clave faltan (series s1/s2 y salida larga) y qué
      días quedan.

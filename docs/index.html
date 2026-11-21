@@ -162,6 +162,14 @@ nav button.on{color:var(--accent)}
 .kpi div{background:var(--card2);border-radius:12px;padding:9px 10px} .kpi b{display:block;font-size:17px} .kpi span{font-size:11.5px;color:var(--muted)}
 .up{color:var(--green)} .down{color:var(--red)}
 .concl li{margin:5px 0}
+.movej.hecho{opacity:.6}.movej a{color:var(--accent2);display:inline-block;margin-top:6px}
+.chk{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:none;color:var(--green);font-size:18px;font-weight:700;flex:none}
+.chk.done{border-color:var(--green);background:#3ecf7222}
+.btn.small.on{border-color:var(--accent);color:var(--accent)}
+#movplayer{position:fixed;inset:0;background:var(--bg);z-index:100;overflow:auto;padding:16px}
+#movplayer .mp-in{max-width:520px;margin:0 auto}
+.mp-z{font-size:64px;text-align:center;margin-top:10px}.mp-t{font-size:88px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:10px}
+.mp-bar{width:100%;height:8px;display:block}
 .det summary{cursor:pointer;margin-top:8px}.nota summary{cursor:pointer}
 .nota{border-color:#3dd6c655;background:#3dd6c60d} .nota p{margin:6px 0;font-size:14px} .nota ul{margin:4px 0;padding-left:18px}
 .forma .fila{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
@@ -179,6 +187,7 @@ nav button.on{color:var(--accent)}
 <nav id="nav" class="hidden"><div class="in">
   <button data-tab="hoy" class="on"><i>⚡</i>Hoy</button>
   <button data-tab="semana"><i>📅</i>Semana</button>
+  <button data-tab="movilidad"><i>🧘</i>Movilidad</button>
   <button data-tab="progreso"><i>📈</i>Progreso</button>
   <button data-tab="info"><i>ℹ️</i>Info</button>
 </div></nav>
@@ -703,7 +712,8 @@ function minBici(s){ const o={}; if(!s||s.tipo!=="bici") return o;
 const esBici = a => /ride/i.test(a.tipo||"");
 const repsNum = r => /^\d+$/.test(String(r)) ? +r : null;
 function semanaVol(L){
-  const V={plan:{min:0,carga:0,ses:0,series:0,ton:0,cb:{},cf:{}}, hecho:{min:0,carga:0,ses:0,series:0,ton:0,cb:{},cf:{}}, extra:0, estimado:false};
+  const V={plan:{min:0,carga:0,ses:0,series:0,ton:0,cb:{},cf:{}}, hecho:{min:0,carga:0,ses:0,series:0,ton:0,cb:{},cf:{}}, extra:0, estimado:false, movMin:0};
+  for(let d=0;d<7;d++) V.movMin+=minMov(iso(masDias(L,d)));
   const inicio=A.bloques[0][1], conPlan=iso(L)>=inicio, estaSemana=iso(L)===SEMKEY;
   for(let d=0;d<7;d++){
     const D=masDias(L,d), f=iso(D);
@@ -769,7 +779,7 @@ function render(){
   if(sinPlan()) return vAlta();
   document.getElementById("nav").classList.remove("hidden");
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===UI.tab));
-  app.innerHTML = UI.tab==="hoy" ? vHoy() : UI.tab==="semana" ? vSemana() : UI.tab==="info" ? vInfo() : vProgreso();
+  app.innerHTML = UI.tab==="hoy" ? vHoy() : UI.tab==="semana" ? vSemana() : UI.tab==="info" ? vInfo() : UI.tab==="movilidad" ? vMovilidad() : vProgreso();
 }
 function header(){
   const b=bloque();
@@ -931,6 +941,7 @@ function vHoy(){
     <div class="seg">${[["bici","🚴 Bici"],["gym","🏋️ Gimnasio"],["descanso","😴 Descanso"]].map(([k,t])=>`<button data-com="${k}" class="${(semana().comodin||"bici")===k?"on":""}">${t}</button>`).join("")}</div></div>`:""}
   ${planTerminado()?`<div class="card warn" style="font-size:13.5px">🏁 <b>Tu plan ha terminado.</b> Ve a <b>Info → Tu coach</b>, copia tus datos y pégaselos a Claude para preparar el siguiente.</div>`:""}
   ${lista.length?lista.map((x,k)=>tarjetaSesion(x,f,r,k===pb,par[k])).join(""):tarjetaSesion(PROPIO()?{...LIBRE, titulo:"Hoy no hay fuerza", sub:"", texto:esc(A.plan.textoLibre||"Hoy no toca fuerza.")}:{...LIBRE},f,r,false)}
+  <div class="card row between" style="gap:10px"><span>🧘 <b>Movilidad de ${i===HOY?"hoy":DIAS[i]}</b><br><span class="muted small">${minMov(f)?`✓ ${minMov(f)}' hechos`:`8' o 15' para ${focosDia(f).map(k=>MOV_FOCO[k].t).join(" y ")}`}</span></span><button class="btn small" data-irmov="1">Abrir</button></div>
   ${acts.length?`<div class="card">${acts.map(a=>`<div class="strava"><b>Strava:</b> ${esc(a.nombre||a.tipo)} · ${hm(a.duracion_s||0)}${a.potencia_norm?` · NP ${Math.round(a.potencia_norm)} W`:""}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}${a.carga?` · carga ${Math.round(a.carga)}`:""}</div>`).join("")}</div>`:""}
   ${PROPIO()&&!lista.length?"":`<div class="card"><h3>📝 Feedback del día</h3>
     <div style="margin-top:10px"><label class="f">¿Cómo ha ido?</label>
@@ -1015,6 +1026,7 @@ function vSemana(){
         :`<div class="ses libre"><span class="ico">😴</span><div class="body muted">Libre</div></div>`}
       ${avisos.map(a=>`<div class="warn">⚠️ ${a}</div>`).join("")}
       ${fb?`<div class="small" style="color:var(--green)">✓ Hecho · RPE ${esc(fb.rpe||"–")}</div>`:""}
+      ${minMov(fs)?`<div class="small" style="color:var(--accent2)">🧘 ${minMov(fs)}' de movilidad</div>`:""}
       ${acts.map(a=>`<div class="small" style="color:var(--strava)">● ${hm(a.duracion_s||0)}${a.potencia_norm?` · ${Math.round(a.potencia_norm)} W`:""}${a.fc_media?` · ${Math.round(a.fc_media)} ppm`:""}</div>`).join("")}
     </div>`; }).join("")}
   ${cambiada?`<button class="btn ghost" data-resetsem="1">Volver a la semana tipo</button>`:""}
@@ -1065,6 +1077,7 @@ function vVolumen(V){
     ${filaVol("🏋️","Fuerza · sesiones",H.ses,P.ses,n)}
     ${filaVol("🏋️","Fuerza · series",H.series,P.series,n)}
     ${filaVol("🏋️","Fuerza · kilos movidos",H.ton,P.ton,kg)}
+    ${filaVol("🧘","Movilidad · minutos",V.movMin,56,x=>Math.round(x)+"'","Objetivo: 8' al día. Cuenta los ejercicios marcados como hechos.")}
     <p class="muted small" style="margin:4px 0 0">Kilos movidos = peso × repeticiones × series de los ejercicios con barra o carga fija.</p></div>
   <h2>Qué estamos trabajando</h2>
   <div class="card">
@@ -1533,6 +1546,163 @@ function sinPlan(){ return PERFIL_OK===false && !PROPIO(); }
 
 /* ---------- interacción ---------- */
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2200); }
+/* ---------- movilidad diaria (pestaña Movilidad) ----------
+   Flujo de 8' o 15' según lo entrenado ese día. Fijo: cadera y tobillo (más tiempo en el lado delicado).
+   Cronómetro con avisos, marcar ejercicios hechos; los minutos se guardan en registros.datos.movilidad. */
+// l: 2 = por lado (seg cada lado) · 1 = una vez. z: zona (icono). Solo material de casa: suelo, pared, foam roller y goma.
+const MOV={
+  t_goma:{n:"Tobillo con goma: rodilla adelante", z:"🦶", s:45, l:2, d:"Goma sujeta abajo (pata de un mueble) y por delante del tobillo, tirando hacia atrás. Rodilla hacia la punta del pie y vuelve, sin levantar el talón. Rango sin dolor: nunca fuerces."},
+  t_pared:{n:"Rodilla a la pared", z:"🦶", s:40, l:2, d:"Pie a un palmo de la pared, talón pegado al suelo. Lleva la rodilla a tocar la pared y vuelve, en pulsos suaves. Si tocas fácil, aleja el pie 1 cm."},
+  t_soleo:{n:"Estiramiento de sóleo en pared", z:"🦶", s:40, l:2, d:"Manos en la pared, pie atrás con la rodilla doblada y el talón abajo. Siente la parte baja de la pantorrilla."},
+  t_gemelo:{n:"Estiramiento de gemelo en pared", z:"🦶", s:30, l:2, d:"Como el anterior pero con la rodilla de atrás estirada. Talón al suelo, cadera hacia la pared."},
+  t_foam:{n:"Foam roller: gemelo y sóleo", z:"🧽", s:45, l:2, d:"Pantorrilla sobre el rodillo, la otra pierna encima para más presión. Rueda despacio y para 10\" donde esté cargado."},
+  t_alfabeto:{n:"Alfabeto con el pie", z:"🦶", s:30, l:2, d:"Sentado, dibuja las letras con la punta del pie moviendo solo el tobillo. Lento y amplio."},
+  c_9090:{n:"90/90: cambios de lado", z:"🦵", s:60, l:1, d:"Sentado, una pierna delante y otra al lado, las dos a 90°. Gira las rodillas de un lado a otro sin usar las manos si puedes. Espalda alta."},
+  c_9090i:{n:"90/90 inclinado hacia delante", z:"🦵", s:40, l:2, d:"En posición 90/90, pecho hacia la rodilla de delante con la espalda recta. Respira y baja un poco en cada exhalación."},
+  c_flexor:{n:"Flexor de cadera de rodillas", z:"🦵", s:45, l:2, d:"Rodilla atrás en el suelo (ponle un cojín). Aprieta el glúteo de ese lado y lleva la cadera adelante sin arquear la espalda."},
+  c_couch:{n:"Couch stretch (sofá o pared)", z:"🦵", s:50, l:2, d:"Rodilla atrás pegada a la pared o al sofá, empeine apoyado. Glúteo apretado y tronco alto. Muy bueno tras la bici."},
+  c_rana:{n:"Rana: balanceo atrás", z:"🦵", s:45, l:1, d:"A cuatro patas con las rodillas muy abiertas. Lleva la cadera atrás hacia los talones y vuelve, despacio. Aductores."},
+  c_paloma:{n:"Paloma", z:"🍑", s:45, l:2, d:"Pierna de delante doblada en el suelo, la de atrás estirada. Cadera cuadrada, baja el pecho si puedes. Si molesta la rodilla, hazla tumbado (figura 4)."},
+  c_sent:{n:"Sentadilla profunda sostenida", z:"🦵", s:60, l:1, d:"Baja a sentadilla profunda agarrado a algo (marco de puerta). Talones abajo (o sobre un libro), codos empujando las rodillas hacia fuera. Respira."},
+  c_cossack:{n:"Cossack lento", z:"🦵", s:45, l:1, d:"Piernas muy abiertas. Baja hacia un lado doblando esa rodilla y estirando la otra, y cambia. Talón abajo en la pierna que dobla."},
+  c_mundo:{n:"El mejor estiramiento del mundo", z:"🦵", s:40, l:2, d:"Zancada larga, mano del mismo lado al suelo por dentro del pie, codo hacia el tobillo y luego abre el brazo al techo."},
+  c_rotint:{n:"Limpiaparabrisas de cadera", z:"🦵", s:45, l:1, d:"Sentado con las manos detrás, pies abiertos. Deja caer las dos rodillas a un lado y al otro. Rotación interna de cadera."},
+  p_isquio:{n:"Isquiotibial tumbado con goma", z:"🦵", s:40, l:2, d:"Tumbado, goma en la planta del pie. Sube la pierna estirada hasta notar tensión. Punta del pie hacia ti."},
+  p_foamglu:{n:"Foam roller: glúteo", z:"🧽", s:40, l:2, d:"Sentado sobre el rodillo, tobillo sobre la rodilla contraria. Inclínate hacia el glúteo de la pierna cruzada y rueda despacio."},
+  p_foamisq:{n:"Foam roller: isquios", z:"🧽", s:40, l:2, d:"Parte de atrás del muslo sobre el rodillo. Rueda de la rodilla al glúteo, despacio."},
+  p_foamcua:{n:"Foam roller: cuádriceps", z:"🧽", s:45, l:2, d:"Boca abajo, muslo sobre el rodillo. Rueda de la cadera a encima de la rodilla. Gira un poco para ver la parte de fuera."},
+  p_foamlat:{n:"Foam roller: lateral del muslo", z:"🧽", s:30, l:2, d:"De lado sobre el rodillo, apoyando el pie de arriba delante para dosificar. Suave: no tiene que doler mucho."},
+  e_gato:{n:"Gato-camello", z:"🐈", s:40, l:1, d:"A cuatro patas: redondea la espalda al exhalar y arquéala al inhalar, vértebra a vértebra."},
+  e_libro:{n:"Libro abierto (columna torácica)", z:"🔄", s:35, l:2, d:"Tumbado de lado con las rodillas dobladas. Abre el brazo de arriba hasta el otro lado siguiéndolo con la mirada. Rodillas juntas."},
+  e_foamtor:{n:"Foam roller: extensión de espalda alta", z:"🧽", s:45, l:1, d:"Rodillo bajo la espalda alta, manos detrás de la cabeza. Echa el pecho hacia atrás sobre el rodillo y sube; muévelo un poco y repite. No en la zona lumbar."},
+  e_nino:{n:"Postura del niño con alcance lateral", z:"🙇", s:35, l:2, d:"Sentado sobre los talones, brazos estirados delante. Lleva las dos manos hacia un lado: estira el dorsal del lado contrario."},
+  e_rodpecho:{n:"Rodillas al pecho", z:"🙇", s:30, l:1, d:"Tumbado, abraza las rodillas y balancéate suave. Suelta la zona lumbar."},
+  h_pasos:{n:"Pasos de hombro con goma", z:"💪", s:40, l:1, d:"Goma con los brazos estirados y manos abiertas. Pásala por encima de la cabeza hacia atrás y vuelve, sin arquear la espalda. Si cuesta, abre más las manos."},
+  h_pec:{n:"Pectoral en el marco de la puerta", z:"💪", s:35, l:2, d:"Antebrazo en el marco con el codo a la altura del hombro. Gira el pecho hacia fuera, suave. Bueno tras el press de banca."},
+  h_dorsal:{n:"Colgado o dorsal en pared", z:"💪", s:35, l:1, d:"Manos en la pared o en una mesa, camina atrás y deja caer el pecho con los brazos estirados. Tras las dominadas."},
+  h_foamdor:{n:"Foam roller: dorsal", z:"🧽", s:35, l:2, d:"De lado, rodillo bajo la axila con el brazo estirado. Rueda un poco hacia abajo y gira el pecho."},
+  r_90:{n:"Respiración con piernas en la pared", z:"🌬️", s:60, l:1, d:"Tumbado con las piernas en la pared o en una silla a 90°. Inhala por la nariz 4\" y exhala lento 6-8\". Baja pulsaciones y cierra el día."}
+};
+// Bloques: fijo (cadera + tobillo) y uno por lo entrenado. Orden = prioridad (los primeros entran siempre).
+const MOV_FIJO=["t_goma","c_9090","t_pared","c_sent","c_flexor","t_alfabeto","c_9090i","c_cossack","c_rotint"];
+const MOV_FOCO={
+  pierna:{t:"pierna pesada", ids:["t_foam","c_couch","p_foamcua","p_foamglu","c_rana","t_soleo","p_foamlat"]},
+  posterior:{t:"cadena posterior", ids:["p_isquio","p_foamglu","c_paloma","p_foamisq","e_gato","e_rodpecho"]},
+  superior:{t:"tren superior", ids:["h_pec","h_dorsal","e_foamtor","h_pasos","h_foamdor","e_libro"]},
+  bici:{t:"bici", ids:["c_couch","p_foamcua","e_foamtor","c_paloma","t_gemelo","e_libro","p_foamglu"]},
+  descanso:{t:"día de descanso", ids:["e_gato","c_mundo","c_paloma","e_libro","t_soleo","c_rana","h_pasos","e_nino","p_isquio"]}
+};
+const MOV_LADO = () => (A.movilidad&&A.movilidad.lado) || (PROPIO()?null:"der");   // lado delicado: más tiempo
+function focosDia(f){
+  const D=new Date(f+"T00:00:00"), ac=actDia(f), o=[], hoy=iso(HOYD);
+  // Lo hecho manda: en días pasados (o hoy con actividad) solo cuentan las sesiones hechas; lo extra entra por Strava
+  const l=sesionesFecha(D).filter(x=>!x.opcional && (f>hoy || (f===hoy&&!ac.length) || hechaSes(f,x)));
+  const add=k=>{ if(!o.includes(k)) o.push(k); };
+  l.forEach(x=>{
+    if(x.tipo==="fuerza"){ const t=(x.ej||[]).map(e=>e.n.toLowerCase()).join(" ");
+      if(/sentadilla|zancada|búlgara|step/.test(t)) add("pierna");
+      if(/peso muerto|rumano|hip thrust|puente/.test(t)) add("posterior");
+      if(/press|dominad|remo|banca/.test(t)) add("superior"); }
+    else if(x.tipo==="bici") add("bici"); });
+  ac.forEach(a=>{ const t=tipoAct(a); if(l.some(x=>x.tipo===t)) return;
+    if(t==="bici") add("bici"); else if(t==="fuerza"){ add("superior"); add("posterior"); } else if(t==="carrera"){ add("pierna"); } });
+  return o.length?o:["descanso"];
+}
+// Pasos del flujo (cada lado es un paso). min = 8 o 15.
+function flujoMov(f, min){
+  const focos=focosDia(f), lado=MOV_LADO(), obj=min*60, ids=[];
+  const dur=id=>MOV[id].s*MOV[id].l + (MOV[id].l===2&&lado&&/^t_|^c_/.test(id)?Math.round(MOV[id].s/2):0) + 5*MOV[id].l;
+  let t=0; const meter=id=>{ if(ids.includes(id)||t+dur(id)>obj+45) return; ids.push(id); t+=dur(id); };
+  const fijo=MOV_FIJO.slice(0, min>=15?6:3), foco=[];
+  focos.forEach((k,j)=>MOV_FOCO[k].ids.forEach((id,n)=>foco.push([n*10+j,id]))); foco.sort((a,b)=>a[0]-b[0]);
+  fijo.forEach(meter); foco.forEach(([,id])=>meter(id));
+  MOV_FIJO.forEach(meter);
+  if(min>=15) meter("r_90");
+  const pasos=[]; ids.forEach(id=>{ const e=MOV[id];
+    if(e.l===2){ const extra=lado&&/^t_|^c_/.test(id)?Math.round(e.s/2):0;
+      const L=lado==="izq"?["izquierdo","derecho"]:["derecho","izquierdo"];
+      pasos.push({id, lado:L[0], s:e.s+extra}, {id, lado:L[1], s:e.s}); }
+    else pasos.push({id, s:e.s}); });
+  return {focos, ids, pasos, seg:pasos.reduce((a,p)=>a+p.s,0)};
+}
+const movDe = f => (REG[f]||{}).movilidad || null;
+function minMov(f){ const m=movDe(f); if(!m||!m.hechos) return 0; return Math.round(Object.keys(m.hechos).reduce((a,id)=>a+(MOV[id]?MOV[id].s*MOV[id].l:0),0)/60); }
+function vMovilidad(){
+  const i=UI.dia, f=iso(fecha(i)), v=UI.movV||8, F=flujoMov(f,v), m=movDe(f)||{}, h=m.hechos||{}, lado=MOV_LADO();
+  const hechos=F.ids.filter(id=>h[id]).length, mins=minMov(f);
+  const L=lunesDe(fecha(i)); let semMin=0; for(let k=0;k<7;k++) semMin+=minMov(iso(masDias(L,k)));
+  const yt=n=>"https://www.youtube.com/results?search_query="+encodeURIComponent(n+" movilidad");
+  return `${header()}<h2>Movilidad · ${i===HOY?"hoy":DIAS[i]} ${fecha(i).getDate()}</h2>
+  <div class="row" style="gap:6px;margin-bottom:10px;overflow-x:auto">${DIAS.map((d,k)=>`<button class="btn ghost small ${k===i?"on":""}" data-movdia="${k}">${d}${minMov(iso(fecha(k)))?" ✓":""}</button>`).join("")}</div>
+  <div class="card"><div class="obj">🎯 <b>Hoy:</b> cadera y tobillo${lado?` (más tiempo en el ${lado==="der"?"derecho":"izquierdo"})`:""} + soltar ${F.focos.map(k=>MOV_FOCO[k].t).join(" y ")}.</div>
+    <div class="seg" style="margin-top:10px">${[8,15].map(x=>`<button data-movv="${x}" class="${v===x?"on":""}">${x} minutos</button>`).join("")}</div>
+    <button class="btn" style="margin-top:10px" data-movgo="1">▶️ Empezar con cronómetro · ${Math.round(F.seg/60)}'</button>
+    <p class="muted small" style="margin:8px 0 0">${hechos?`✓ Hoy llevas <b>${mins}'</b> (${hechos} de ${F.ids.length} ejercicios)`:"Marca cada ejercicio al hacerlo, o usa el cronómetro y se marcan solos."} · Esta semana: <b>${semMin}'</b></p></div>
+  ${F.ids.map(id=>{ const e=MOV[id], seg=e.l===2?`${e.s}" por lado`:`${e.s}"`;
+    return `<div class="card movej ${h[id]?"hecho":""}"><div class="row between" style="gap:10px">
+      <div style="flex:1"><b>${e.z} ${e.n}</b><div class="muted small">${seg}</div></div>
+      <button class="chk ${h[id]?"done":""}" data-movchk="${id}" aria-label="Hecho">${h[id]?"✓":""}</button></div>
+      <p class="small" style="margin:6px 0 0">${e.d}</p>
+      <a class="small" href="${yt(e.n)}" target="_blank" rel="noopener">▶️ Ver cómo se hace</a></div>`; }).join("")}
+  ${vTestMov()}
+  <p class="muted small">Sin dolor: tensión agradable, nunca pinchazo. En el tobillo operado, rango cómodo y sin rebotes. Respira lento en cada postura.</p>`;
+}
+// Test de movilidad (repetir cada 4 semanas)
+const TEST_MOV=[["kwD","Rodilla a la pared · derecho","cm","Distancia máxima del dedo gordo a la pared tocando con la rodilla, talón abajo."],
+  ["kwI","Rodilla a la pared · izquierdo","cm",""],
+  ["sent","Sentadilla profunda sin calzas","seg","Segundos aguantando abajo sin levantar talones ni agarrarte (máx. 60)."],
+  ["thD","Flexor de cadera · derecho","1-3","Tumbado al borde de la cama abrazando una rodilla: 3 = el otro muslo queda plano, 1 = se levanta mucho."],
+  ["thI","Flexor de cadera · izquierdo","1-3",""],
+  ["n90","90/90 sin manos","1-3","3 = cambias de lado sin manos y con la espalda recta; 1 = no llegas."]];
+function vTestMov(){
+  const ts=Object.keys(REG).filter(f=>REG[f].testMov).sort(), ult=ts[ts.length-1], pri=ts[0], hoy=iso(HOYD);
+  const dias=ult?Math.round((HOYD-new Date(ult+"T00:00:00"))/864e5):null, t=(REG[hoy]||{}).testMov||{};
+  return `<details class="card" ${!ult?"open":""}><summary><b>🧪 Test de movilidad</b> <span class="muted small">· ${ult?`último hace ${dias} días${dias>=28?" · toca repetirlo":""}`:"hazlo hoy para tener tu punto de partida"}</span></summary>
+    <p class="muted small">5 minutos. Repítelo cada 4 semanas para ver si mejoras.</p>
+    ${TEST_MOV.map(([k,n,u,d])=>`<label class="f" style="margin-top:8px">${n} <span class="muted">(${u})</span>${pri&&pri!==ult&&REG[pri].testMov[k]!=null?` <span class="muted small">· primero ${esc(REG[pri].testMov[k])} → último ${esc(REG[ult].testMov[k]??"–")}</span>`:ult&&REG[ult].testMov[k]!=null?` <span class="muted small">· último ${esc(REG[ult].testMov[k])}</span>`:""}</label>
+      ${d?`<div class="muted small">${d}</div>`:""}<input inputmode="decimal" data-testmov="${k}" value="${esc(t[k]??"")}" placeholder="${u}">`).join("")}
+  </details>`;
+}
+// Reproductor con cronómetro (fuera de #app para que no se borre al repintar)
+let MP=null;
+function beep(fr,ms){ try{ const c=MP.ctx||(MP.ctx=new (window.AudioContext||window.webkitAudioContext)()); const o=c.createOscillator(), g=c.createGain();
+  o.frequency.value=fr; o.connect(g); g.connect(c.destination); g.gain.value=.15; o.start(); o.stop(c.currentTime+ms/1000); }catch(_){} }
+function movStart(f,v){
+  const F=flujoMov(f,v); MP={f, v, F, k:-1, left:5, pausa:false, prep:true};
+  let el=document.getElementById("movplayer"); if(!el){ el=document.createElement("div"); el.id="movplayer"; document.body.appendChild(el); }
+  try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(w=>MP.wl=w).catch(()=>{}); }catch(_){}
+  beep(660,120); MP.t=setInterval(movTick,1000); movPaint();
+}
+function movTick(){ if(!MP||MP.pausa) return; MP.left--;
+  if(MP.left>0 && MP.left<=3) beep(880,80);
+  if(MP.left<=0){ if(MP.k>=0 && !MP.skip) movMarcar(MP.f, MP.F.pasos[MP.k].id, MP.F.pasos[MP.k+1]&&MP.F.pasos[MP.k+1].id===MP.F.pasos[MP.k].id);
+    MP.k++; if(MP.k>=MP.F.pasos.length) return movEnd(true);
+    MP.left=MP.F.pasos[MP.k].s; MP.prep=false; MP.skip=false; beep(520,250); try{ navigator.vibrate&&navigator.vibrate(200); }catch(_){} }
+  movPaint(); }
+function movMarcar(f,id,medio){ if(medio) return; const r=REG[f]||(REG[f]={fecha:f}); r.movilidad=r.movilidad||{hechos:{}};
+  r.movilidad.hechos=r.movilidad.hechos||{}; r.movilidad.hechos[id]=true; r.movilidad.v=MP?MP.v:r.movilidad.v; r.movilidad.min=minMov(f); saveReg(f); }
+function movEnd(fin){ if(!MP) return; clearInterval(MP.t); try{ MP.wl&&MP.wl.release(); }catch(_){}
+  const f=MP.f; MP=null; const el=document.getElementById("movplayer"); if(el) el.remove();
+  render(); if(fin){ beep(990,400); toast(`¡Hecho! ${minMov(f)}' de movilidad`); } }
+function movPaint(){ const el=document.getElementById("movplayer"); if(!el||!MP) return;
+  const P=MP.F.pasos, p=MP.k>=0?P[MP.k]:null, sig=P[MP.k+1], e=p?MOV[p.id]:null, tot=p?p.s:5;
+  const hecho=P.slice(0,Math.max(0,MP.k)).reduce((a,x)=>a+x.s,0), pct=Math.round(hecho/MP.F.seg*100);
+  el.innerHTML=`<div class="mp-in"><div class="row between"><span class="muted small">${MP.k+1>0?MP.k+1:0} / ${P.length} · ${pct} %</span><button class="btn ghost small" data-mp="x">✕ Salir</button></div>
+    <div class="bar" style="margin:8px 0 18px"><i style="width:${pct}%"></i></div>
+    <div class="mp-z">${e?e.z:"🧘"}</div>
+    <h2 style="margin:6px 0 2px;text-align:center">${e?e.n:"Prepárate"}</h2>
+    <div class="muted" style="text-align:center">${p&&p.lado?"Lado "+p.lado:e?"":"Empezamos en…"}</div>
+    <div class="mp-t">${MP.left}</div>
+    <svg viewBox="0 0 100 6" class="mp-bar"><rect width="100" height="6" rx="3" fill="var(--line)"/><rect width="${Math.max(0,(tot-MP.left)/tot*100)}" height="6" rx="3" fill="var(--accent)"/></svg>
+    <p class="small" style="margin:14px 0">${e?e.d:(MOV[P[0].id].n+": "+MOV[P[0].id].d)}</p>
+    <div class="muted small" style="text-align:center">${sig?`Siguiente: ${MOV[sig.id].n}${sig.lado?" · "+sig.lado:""}`:"Último ejercicio"}</div>
+    <div class="row" style="gap:8px;margin-top:16px"><button class="btn ghost" style="flex:1" data-mp="p">${MP.pausa?"▶️ Seguir":"⏸ Pausa"}</button><button class="btn ghost" style="flex:1" data-mp="s">⏭ Saltar</button></div></div>`;
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-mp]"); if(!b||!MP) return;
+  if(b.dataset.mp==="x") return movEnd(false);
+  if(b.dataset.mp==="p"){ MP.pausa=!MP.pausa; movPaint(); return; }
+  if(b.dataset.mp==="s"){ MP.left=1; MP.pausa=false; MP.skip=MP.k>=0; movTick(); } });
+
 document.getElementById("nav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
   UI.tab=b.dataset.tab; UI.mover=null; render(); window.scrollTo(0,0); });
 function sesionVista(){ const i=UI.dia; return ajustar(fuerzaDia(i)||sesionDe(i), semaforo(i), iso(fecha(i))); }
@@ -1590,6 +1760,12 @@ app.addEventListener("click",async e=>{
   if(b.id==="gpeso"){ const v=document.getElementById("pesoCorp").value.trim(); if(!v) return;
     const f=iso(HOYD), r=REG[f]||(REG[f]={fecha:f}); r.pesoCorporal=v; saveReg(f); render(); toast("Peso guardado"); return; }
   if(d.meso){ UI.meso=d.meso; render(); return; }
+  if(d.movdia!==undefined){ UI.dia=+d.movdia; render(); return; }
+  if(d.movv){ UI.movV=+d.movv; render(); return; }
+  if(d.movgo){ movStart(iso(fecha(i)), UI.movV||8); return; }
+  if(d.movchk){ const f=iso(fecha(i)), r=REG[f]||(REG[f]={fecha:f}); r.movilidad=r.movilidad||{}; const h=r.movilidad.hechos=r.movilidad.hechos||{};
+    if(h[d.movchk]) delete h[d.movchk]; else h[d.movchk]=true; r.movilidad.v=UI.movV||8; r.movilidad.min=minMov(f); saveReg(f); render(); return; }
+  if(d.irmov){ UI.tab="movilidad"; render(); window.scrollTo(0,0); return; }
   if(d.ausadd){ const t=document.getElementById("aus-tipo").value, de=document.getElementById("aus-desde").value, ha=document.getElementById("aus-hasta").value||de;
     if(!de || ha<de){ toast("Revisa las fechas"); return; }
     const nota=document.getElementById("aus-nota").value.trim();
@@ -1622,6 +1798,9 @@ app.addEventListener("change",e=>{
     const ex=sesionVista().ej[+el.dataset.rpeej], r=tocar(i); r.rpeEj=r.rpeEj||{};
     const v=el.value.trim(); if(v) r.rpeEj[ex.n]=v; else delete r.rpeEj[ex.n];
     saveReg(r.fecha); return; }
+  if(el.dataset.testmov!==undefined){ const f=iso(HOYD), r=REG[f]||(REG[f]={fecha:f}); r.testMov=r.testMov||{};
+    const v=el.value.trim().replace(",","."); if(v) r.testMov[el.dataset.testmov]=v; else delete r.testMov[el.dataset.testmov];
+    if(!Object.keys(r.testMov).length) delete r.testMov; saveReg(f); renderPend=true; return; }
   if(el.id==="readiness"||el.id==="sueno"){
     const r=tocar(i); r.checkin={...(r.checkin||{})}; const v=el.value.trim();
     if(v) r.checkin[el.id]=v; else delete r.checkin[el.id];

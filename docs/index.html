@@ -1636,12 +1636,15 @@ function ytListo(){ return YTP||(YTP=new Promise((ok,ko)=>{ if(window.YT&&YT.Pla
 // tapa = atributo del velo que cubre el vídeo (así un toque no abre YouTube): en la lista lo cierra, en el cronómetro pausa
 function vidPlayer(caja, y, tapa){
   const o={y, ok:false, pausado:false, cerrado:false}, div=document.createElement("div"); caja.innerHTML=`<button type="button" class="vtapa" ${tapa}></button>`; caja.prepend(div);
+  const velo=v=>{ const t=caja.querySelector(".vtapa"); if(t) t.style.display=v?"":"none"; };
   const ini=()=>o.y[1]||0, carga=()=>Object.assign({videoId:o.y[0], startSeconds:ini()}, o.y[2]?{endSeconds:o.y[2]}:{});
   ytListo().then(()=>{ if(o.cerrado) return;
     o.p=new YT.Player(div,{host:"https://www.youtube-nocookie.com", videoId:y[0], width:"100%", height:"100%",
       playerVars:Object.assign({autoplay:1, mute:1, playsinline:1, controls:0, rel:0, modestbranding:1, iv_load_policy:3, disablekb:1, fs:0, start:y[1]||0, origin:location.origin}, y[2]?{end:y[2]}:{}),
-      events:{ onReady:e=>{ o.ok=true; e.target.mute(); if(o.y[0]!==y[0]) e.target.loadVideoById(carga()); if(o.pausado) e.target.pauseVideo(); else e.target.playVideo(); },
-               onStateChange:e=>{ if(e.data===0 && !o.pausado){ e.target.seekTo(ini(),true); e.target.playVideo(); } } }});
+      events:{ onReady:e=>{ o.ok=true; e.target.mute(); if(o.y[0]!==y[0]) e.target.loadVideoById(carga()); if(o.pausado) e.target.pauseVideo(); else e.target.playVideo();
+                 // si el móvil no deja arrancar solo (ahorro de batería), se quita el velo para poder pulsar ▶ de YouTube
+                 setTimeout(()=>{ try{ const st=o.p.getPlayerState(); if(!o.pausado && st!==1 && st!==3) velo(false); }catch(_){} }, 3500); },
+               onStateChange:e=>{ if(e.data===1) velo(true); if(e.data===0 && !o.pausado){ e.target.seekTo(ini(),true); e.target.playVideo(); } } }});
     o.t=setInterval(()=>{ try{ if(o.ok && o.y[2] && o.p.getCurrentTime()>=o.y[2]-.3) o.p.seekTo(ini(),true); }catch(_){} },400);
   }).catch(()=>{});
   o.cargar=y2=>{ if(y2[0]===o.y[0]) return; o.y=y2; if(o.ok){ o.p.loadVideoById(carga()); if(o.pausado) o.p.pauseVideo(); } };

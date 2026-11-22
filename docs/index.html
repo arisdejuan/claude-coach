@@ -166,7 +166,9 @@ nav button.on{color:var(--accent)}
 .chk{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:none;color:var(--green);font-size:18px;font-weight:700;flex:none}
 .chk.done{border-color:var(--green);background:#3ecf7222}
 .btn.small.on{border-color:var(--accent);color:var(--accent)}
-#movplayer{position:fixed;inset:0;background:var(--bg);z-index:100;overflow:auto;padding:16px}
+#movplayer{position:fixed;inset:0;background:var(--bg);z-index:100;overflow:auto;padding:calc(12px + env(safe-area-inset-top)) 16px 0}
+.mp-ctl{position:sticky;bottom:0;z-index:3;display:flex;gap:8px;margin-top:14px;padding:10px 0 calc(10px + env(safe-area-inset-bottom));background:var(--bg)}
+.mp-ctl .btn{flex:1;padding-left:6px;padding-right:6px}.mp-ctl .salir{color:var(--red);border-color:var(--red)}
 #movplayer .mp-in{max-width:520px;margin:0 auto}
 .movrow{display:flex;gap:12px;align-items:flex-start}
 .movth{position:relative;flex:none;width:84px;height:112px;border-radius:10px;overflow:hidden;border:0;padding:0;background:#000;cursor:pointer}
@@ -1771,7 +1773,7 @@ function movPaint(){ const top=document.getElementById("mptop"), ui=document.get
   const hecho=P.slice(0,Math.max(0,MP.k)).reduce((a,x)=>a+x.s,0), pct=Math.round(hecho/MP.F.seg*100);
   if(MP.vid!==id){ MP.vid=id; const caja=document.getElementById("mpvid"); cajaVid(caja, id, "46vh");
     if(MP.yt) MP.yt.cargar(MOV[id].y); else MP.yt=vidPlayer(caja, MOV[id].y, `data-mp="p"`); }
-  top.innerHTML=`<div class="row between"><span class="muted small">${MP.k+1>0?MP.k+1:0} / ${P.length} · ${pct} %</span><button class="btn ghost small" data-mp="x">✕ Salir</button></div>
+  top.innerHTML=`<div class="muted small" style="text-align:center">${MP.k+1>0?MP.k+1:0} / ${P.length} · ${pct} %</div>
     <div class="bar" style="margin:8px 0 12px"><i style="width:${pct}%"></i></div>`;
   ui.innerHTML=`<div class="muted small" style="text-align:center;margin-top:4px">🎥 ${esc(MOV[id].y[4])}</div>
     <h2 style="margin:6px 0 2px;text-align:center">${e?e.n:"Prepárate: "+MOV[id].n}</h2>
@@ -1780,7 +1782,7 @@ function movPaint(){ const top=document.getElementById("mptop"), ui=document.get
     <svg viewBox="0 0 100 6" class="mp-bar"><rect width="100" height="6" rx="3" fill="var(--line)"/><rect width="${Math.max(0,(tot-MP.left)/tot*100)}" height="6" rx="3" fill="var(--accent)"/></svg>
     <ul class="claves" style="margin:12px 0">${MOV[id].k.map(x=>`<li>${x}</li>`).join("")}</ul>
     ${sig?`<div class="mp-sig"><img alt="" src="${ytMini(MOV[sig.id].y)}"><span class="muted small">Siguiente<br><b>${MOV[sig.id].n}</b>${sig.lado?" · "+sig.lado:""}</span></div>`:`<div class="muted small" style="text-align:center">Último ejercicio</div>`}
-    <div class="row" style="gap:8px;margin-top:14px"><button class="btn ghost" style="flex:1" data-mp="p">${MP.pausa?"▶️ Seguir":"⏸ Pausa"}</button><button class="btn ghost" style="flex:1" data-mp="s">⏭ Saltar</button></div>`;
+    <div class="mp-ctl"><button class="btn ghost salir" data-mp="x">✕ Salir</button><button class="btn ghost" data-mp="p">${MP.pausa?"▶️ Seguir":"⏸ Pausa"}</button><button class="btn ghost" data-mp="s">⏭ Saltar</button></div>`;
 }
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-mp]"); if(!b||!MP) return;
   if(b.dataset.mp==="x") return movEnd(false);

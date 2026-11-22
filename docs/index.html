@@ -162,22 +162,22 @@ nav button.on{color:var(--accent)}
 .kpi div{background:var(--card2);border-radius:12px;padding:9px 10px} .kpi b{display:block;font-size:17px} .kpi span{font-size:11.5px;color:var(--muted)}
 .up{color:var(--green)} .down{color:var(--red)}
 .concl li{margin:5px 0}
-.movej.hecho{opacity:.6}.movej a{color:var(--accent2);display:inline-block;margin-top:6px}
+.movej.hecho{opacity:.6}
 .chk{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:none;color:var(--green);font-size:18px;font-weight:700;flex:none}
 .chk.done{border-color:var(--green);background:#3ecf7222}
 .btn.small.on{border-color:var(--accent);color:var(--accent)}
 #movplayer{position:fixed;inset:0;background:var(--bg);z-index:100;overflow:auto;padding:16px}
 #movplayer .mp-in{max-width:520px;margin:0 auto}
-.mp-z{margin-top:6px}
-.dib{width:100%;max-height:150px;display:block;margin:8px 0 2px;background:var(--card2);border-radius:10px}
-.dib .body,.dib .far{fill:none;stroke:var(--text);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
-.dib .far{stroke:var(--muted);opacity:.55}.dib .head{fill:var(--text)}
-.dib .suelo{stroke:var(--line);stroke-width:1.5}.dib .prop{fill:none;stroke:var(--muted);stroke-width:2.5;stroke-linecap:round}
-.dib .propf{fill:var(--muted);opacity:.6}.dib .roll{fill:var(--accent2);opacity:.75}
-.dib .band{stroke:var(--amber);stroke-width:2;stroke-dasharray:3 2}.dib .foco{fill:var(--accent);opacity:.35}
-.dib .arr{stroke:var(--accent);stroke-width:2;stroke-dasharray:4 3;fill:none}
-.dib .num{fill:var(--muted);font-size:20px;font-weight:700}.dib .num.s{font-size:10px}.dib .txt{fill:var(--accent2);font-size:9px;font-weight:700}
-.claves{margin:6px 0 0;padding-left:18px;font-size:13.5px}.claves li{margin:2px 0}.mp-t{font-size:88px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:10px}
+.movrow{display:flex;gap:12px;align-items:flex-start}
+.movth{position:relative;flex:none;width:84px;height:112px;border-radius:10px;overflow:hidden;border:0;padding:0;background:#000;cursor:pointer}
+.movth img{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:none}
+.movth span{position:absolute;inset:auto 6px 6px auto;width:26px;height:26px;border-radius:50%;background:#000a;color:#fff;font-size:12px;line-height:26px;text-align:center}
+.movvid{display:none;margin:10px auto 0;border-radius:12px;overflow:hidden;background:#000 center/cover no-repeat}
+.movvid.on,.mpvid{display:block}.movvid iframe,.mpvid iframe{width:100%;height:100%;border:0;display:block}
+.movvid,.mpvid{position:relative}.vtapa{position:absolute;inset:0;z-index:2;cursor:pointer;background:none;border:0;padding:0;width:100%;height:100%}
+.mpvid{margin:0 auto;border-radius:14px;overflow:hidden;background:#000 center/cover no-repeat}
+.mp-sig{display:flex;gap:10px;align-items:center;justify-content:center}.mp-sig img{width:64px;height:48px;object-fit:cover;border-radius:8px}
+.claves{margin:6px 0 0;padding-left:18px;font-size:13.5px}.claves li{margin:2px 0}.mp-t{font-size:64px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:10px}
 .mp-bar{width:100%;height:8px;display:block}
 .det summary{cursor:pointer;margin-top:8px}.nota summary{cursor:pointer}
 .nota{border-color:#3dd6c655;background:#3dd6c60d} .nota p{margin:6px 0;font-size:14px} .nota ul{margin:4px 0;padding-left:18px}
@@ -1558,111 +1558,108 @@ function toast(t){ const el=document.getElementById("toast"); el.textContent=t; 
 /* ---------- movilidad diaria (pestaña Movilidad) ----------
    Flujo de 8' o 15' según lo entrenado ese día. Fijo: cadera y tobillo (más tiempo en el lado delicado).
    Cronómetro con avisos, marcar ejercicios hechos; los minutos se guardan en registros.datos.movilidad. */
-// l: 2 = por lado (seg cada lado) · 1 = una vez. k: claves (1-2). f: fotogramas del dibujo (inicio → final).
-// Pose: h cabeza · n cuello · c mitad de espalda (opcional) · p cadera · k/a/t rodilla/tobillo/punta (1 = cerca, 2 = lejos)
-// · e/w codo/mano. x: accesorios ["pared",x] ["rodillo",x,y] ["goma",x1,y1,x2,y2] ["poste",x] ["mesa",x,y] ["silla",x,y]
-// ["foco",x,y] (dónde se nota) ["flecha",x1,y1,x2,y2]. Lienzo de 120 × 90, suelo en y = 82.
+// l: 2 = por lado (seg cada lado) · 1 = una vez. k: claves (1-2).
+// y: vídeo de YouTube [id, segundo de inicio, segundo final (0 = hasta el final), ancho/alto, canal, miniatura (hq2 por defecto)].
+// Se ve en bucle,
+// sin sonido, solo el tramo útil (sin presentaciones). Insertado con el reproductor oficial (youtube-nocookie).
 const MOV={
   t_goma:{n:"Tobillo con goma: rodilla adelante", s:45, l:2, k:["Talón pegado al suelo todo el rato","Rodilla hacia la punta del pie, sin dolor"],
-    f:[{h:[58,20],n:[56,27],p:[52,52],k1:[72,52],a1:[72,80],t1:[81,81],k2:[44,80],a2:[27,80],t2:[22,78],e1:[64,40],w1:[71,50],x:[["goma",71,77,8,77],["poste",8],["foco",72,74]]},
-       {h:[65,22],n:[62,29],p:[57,54],k1:[81,57],a1:[72,80],t1:[81,81],k2:[44,80],a2:[27,80],t2:[22,78],e1:[71,43],w1:[80,55],x:[["goma",71,77,8,77],["poste",8],["flecha",74,48,86,52]]}]},
+    y:["5jgUBrI-CpM",0,0,0.562,"Physio Room Co"]},
   t_pared:{n:"Rodilla a la pared", s:40, l:2, k:["Talón abajo: la rodilla toca la pared","Si tocas fácil, aleja el pie 1 cm"],
-    f:[{h:[80,17],n:[79,24],p:[76,48],k1:[90,59],a1:[87,80],t1:[95,81],k2:[66,64],a2:[57,80],t2:[63,81],e1:[89,30],w1:[99,30],x:[["pared",100]]},
-       {h:[86,19],n:[85,26],p:[81,50],k1:[98,60],a1:[87,80],t1:[95,81],k2:[69,65],a2:[57,80],t2:[63,81],e1:[93,33],w1:[99,32],x:[["pared",100],["flecha",91,54,97,57],["foco",86,72]]}]},
+    y:["_4l_r-BY0GE",0,0,0.562,"Alan Willinger"]},
   t_soleo:{n:"Estiramiento de sóleo en pared", s:40, l:2, k:["Rodilla de atrás doblada","Talón de atrás clavado al suelo"],
-    f:[{h:[86,21],n:[83,28],p:[70,50],k1:[63,64],a1:[54,80],t1:[62,81],k2:[82,62],a2:[86,80],t2:[94,81],e1:[91,32],w1:[99,30],x:[["pared",100],["foco",57,72]]}]},
+    y:["vzg233ClYdU",0,0,0.562,"Achilles Healers Sports Therapy"]},
   t_gemelo:{n:"Estiramiento de gemelo en pared", s:30, l:2, k:["Rodilla de atrás estirada","Talón al suelo, cadera hacia la pared"],
-    f:[{h:[88,19],n:[85,26],p:[73,48],k1:[60,64],a1:[47,80],t1:[55,81],k2:[84,62],a2:[86,80],t2:[94,81],e1:[92,30],w1:[99,28],x:[["pared",100],["foco",53,70]]}]},
+    y:["tUA4MO1kXV8",0,0,0.562,"The Running PTs"]},
   t_foam:{n:"Foam roller: gemelo y sóleo", s:45, l:2, k:["La otra pierna encima para más presión","Para 10\" donde esté cargado"],
-    f:[{h:[27,44],n:[30,51],p:[38,76],k1:[60,72],a1:[82,72],t1:[85,65],k2:[60,68],a2:[82,66],t2:[85,59],e1:[24,64],w1:[22,80],x:[["rodillo",72,78],["flecha",62,88,82,88]]}]},
+    y:["zn1tcngoD8U",0,0,0.562,"Evolution Physical Therapy & Fitness"]},
   t_alfabeto:{n:"Alfabeto con el pie", s:30, l:2, k:["Mueve solo el tobillo","Letras grandes y lentas"],
-    f:[{h:[27,44],n:[30,51],p:[38,76],k1:[58,66],a1:[77,58],t1:[80,52],k2:[52,62],a2:[62,80],t2:[69,81],e1:[24,64],w1:[22,80],x:[["texto",86,48,"A B C"],["foco",78,57]]}]},
+    y:["2TRbY2PvEPs",0,0,0.562,"Justin Agustin"]},
   c_9090:{n:"90/90: cambios de lado", s:60, l:1, k:["Espalda alta, sin manos si puedes","Las dos rodillas a 90°"],
-    f:[{h:[60,40],n:[60,47],p:[60,54],k1:[56,74],a1:[34,74],k2:[84,54],a2:[84,30],e1:[47,47],e2:[73,47],x:[["sinsuelo"],["texto",12,11,"visto desde arriba"]]},
-       {h:[60,40],n:[60,47],p:[60,54],k1:[64,74],a1:[86,74],k2:[36,54],a2:[36,30],e1:[47,47],e2:[73,47],x:[["sinsuelo"],["flecha",40,86,80,86]]}]},
+    y:["qq_Z7sAmVrA",3,66,1.778,"Simone Sports Performance"]},
   c_9090i:{n:"90/90 inclinado hacia delante", s:40, l:2, k:["Pecho hacia la rodilla, espalda recta","Baja un poco en cada exhalación"],
-    f:[{h:[56,22],n:[55,29],p:[50,76],k1:[72,78],a1:[60,82],k2:[34,80],a2:[28,70],e1:[62,44],w1:[70,58],x:[]},
-       {h:[80,50],n:[74,54],p:[50,76],k1:[72,78],a1:[60,82],k2:[34,80],a2:[28,70],e1:[82,66],w1:[90,80],x:[["flecha",62,30,78,44],["foco",50,70]]}]},
+    y:["aBNEsCYXyp0",0,0,0.562,"Ryzing Fitness"]},
   c_flexor:{n:"Flexor de cadera de rodillas", s:45, l:2, k:["Aprieta el glúteo de la pierna de atrás","Cadera adelante sin arquear la espalda"],
-    f:[{h:[50,20],n:[50,27],p:[50,52],k1:[42,80],a1:[26,80],t1:[22,78],k2:[70,52],a2:[70,80],t2:[78,81],e1:[42,42],w1:[48,52],x:[]},
-       {h:[56,22],n:[56,29],p:[56,54],k1:[42,80],a1:[26,80],t1:[22,78],k2:[75,54],a2:[72,80],t2:[80,81],e1:[48,44],w1:[54,54],x:[["flecha",44,60,56,60],["foco",52,58]]}]},
+    y:["mzPvzMivukw",0,0,1.778,"Hospital for Special Surgery"]},
   c_couch:{n:"Couch stretch (sofá o pared)", s:50, l:2, k:["Rodilla atrás pegada a la pared","Glúteo apretado, tronco alto"],
-    f:[{h:[37,25],n:[36,32],p:[34,57],k1:[17,80],a1:[16,58],t1:[14,53],k2:[56,58],a2:[57,80],t2:[65,81],e1:[45,46],w1:[54,56],x:[["pared",12],["foco",28,62]]}]},
+    y:["TML8Vqy-ACQ",0,0,0.562,"The Ready State"]},
   c_rana:{n:"Rana: balanceo atrás", s:45, l:1, k:["Rodillas muy abiertas","Cadera atrás despacio, espalda larga"],
-    f:[{h:[86,50],n:[78,52],p:[50,58],k1:[52,80],a1:[34,80],e1:[79,66],w1:[80,80],x:[]},
-       {h:[76,60],n:[68,62],p:[36,66],k1:[52,80],a1:[34,80],e1:[78,72],w1:[86,80],x:[["flecha",50,48,38,52],["foco",46,72]]}]},
+    y:["kyrqj7bi5Bc",0,0,0.562,"Competitive Edge Physical Therapy and Performance"]},
   c_paloma:{n:"Paloma", s:45, l:2, k:["Cadera cuadrada al frente","Si molesta la rodilla, hazla tumbado"],
-    f:[{h:[59,43],n:[58,50],p:[55,74],k1:[75,80],a1:[60,82],k2:[32,80],a2:[12,80],t2:[8,82],e1:[64,62],w1:[66,80],x:[]},
-       {h:[85,62],n:[78,64],p:[55,74],k1:[75,80],a1:[60,82],k2:[32,80],a2:[12,80],t2:[8,82],e1:[90,72],w1:[100,80],x:[["flecha",62,40,82,52],["foco",56,70]]}]},
+    y:["e99cdZ_Nl3I",0,0,0.8,"Rehab Hero"]},
   c_sent:{n:"Sentadilla profunda sostenida", s:60, l:1, k:["Talones abajo (o sobre un libro)","Codos empujando las rodillas hacia fuera"],
-    f:[{h:[58,37],n:[57,44],p:[48,72],k1:[67,60],a1:[60,80],t1:[68,81],e1:[76,44],w1:[96,42],x:[["poste",97],["foco",62,76]]}]},
+    y:["IHApHfNA2Ag",2,66,1.778,"Hinge Health","hqdefault"]},
   c_cossack:{n:"Cossack lento", s:45, l:1, k:["Talón abajo en la pierna que dobla","La otra pierna estirada, punta arriba"],
-    f:[{h:[46,31],n:[46,38],p:[44,64],k1:[28,66],a1:[30,80],t1:[24,81],k2:[70,72],a2:[94,80],t2:[95,74],e1:[38,50],w1:[50,54],e2:[56,50],w2:[50,54],x:[]},
-       {h:[74,31],n:[74,38],p:[76,64],k1:[92,66],a1:[90,80],t1:[96,81],k2:[50,72],a2:[26,80],t2:[25,74],e1:[82,50],w1:[70,54],e2:[64,50],w2:[70,54],x:[["flecha",44,24,76,24]]}]},
+    y:["DAUb0U2RwPY",0,0,0.562,"Coach Miles Davis"]},
   c_mundo:{n:"El mejor estiramiento del mundo", s:40, l:2, k:["Mano al suelo por dentro del pie","Abre el brazo al techo y síguelo con la mirada"],
-    f:[{h:[74,36],n:[68,40],p:[50,56],k1:[70,60],a1:[72,80],t1:[80,81],k2:[34,70],a2:[18,80],t2:[14,81],e1:[66,58],w1:[66,80],e2:[70,54],w2:[72,64],x:[]},
-       {h:[72,34],n:[68,40],p:[50,56],k1:[70,60],a1:[72,80],t1:[80,81],k2:[34,70],a2:[18,80],t2:[14,81],e1:[66,58],w1:[66,80],e2:[66,26],w2:[64,12],x:[["flecha",82,56,76,18],["foco",44,58]]}]},
+    y:["-CiWQ2IvY34",5,35,1.778,"Squat University"]},
   c_rotint:{n:"Limpiaparabrisas de cadera", s:45, l:1, k:["Pies más abiertos que la cadera","Deja caer las rodillas sin forzar"],
-    f:[{h:[60,44],n:[60,51],p:[60,79],k1:[46,60],a1:[38,81],k2:[74,60],a2:[82,81],e1:[50,64],w1:[45,80],e2:[70,64],w2:[75,80],x:[]},
-       {h:[60,44],n:[60,51],p:[60,79],k1:[38,74],a1:[38,81],k2:[54,70],a2:[82,81],e1:[50,64],w1:[45,80],e2:[70,64],w2:[75,80],x:[["flecha",74,56,52,64]]}]},
+    y:["0Y8LL_MCmBg",1,39,1.778,"Movement Pain Docs","hq3"]},
   p_isquio:{n:"Isquiotibial tumbado con goma", s:40, l:2, k:["Pierna estirada, punta hacia ti","Sube hasta notar tensión, no dolor"],
-    f:[{h:[16,73],n:[24,77],p:[50,78],k1:[57,56],a1:[64,33],t1:[70,31],k2:[70,79],a2:[92,79],t2:[94,73],e1:[36,64],w1:[46,56],x:[["goma",46,56,68,31],["foco",54,62]]}]},
+    y:["RpabMbHJB3o",0,0,1.0,"Hailey Happens Fitness"]},
   p_foamglu:{n:"Foam roller: glúteo", s:40, l:2, k:["Tobillo sobre la rodilla contraria","Inclínate hacia el glúteo de la pierna cruzada"],
-    f:[{h:[36,39],n:[38,46],p:[46,68],k1:[64,60],a1:[68,80],t1:[75,81],k2:[60,52],a2:[66,60],e1:[30,60],w1:[26,80],x:[["rodillo",46,76],["flecha",36,88,56,88],["foco",48,66]]}]},
+    y:["F3TJyU8ET7k",5,14,1.778,"Runner's World"]},
   p_foamisq:{n:"Foam roller: isquios", s:40, l:2, k:["Rueda de la rodilla al glúteo","Despacio: 2-3 cm por segundo"],
-    f:[{h:[26,33],n:[28,40],p:[36,64],k1:[60,70],a1:[84,75],t1:[88,69],e1:[24,60],w1:[22,80],x:[["rodillo",48,76],["flecha",40,88,60,88]]}]},
+    y:["FK6jYoQtGiI",0,0,0.562,"Evolution Physical Therapy & Fitness"]},
   p_foamcua:{n:"Foam roller: cuádriceps", s:45, l:2, k:["Apoyado en los antebrazos, abdomen firme","Gira un poco para la parte de fuera"],
-    f:[{h:[86,52],n:[78,56],p:[50,64],k1:[30,70],a1:[12,72],t1:[8,78],e1:[78,72],w1:[92,74],x:[["rodillo",40,76],["flecha",30,88,52,88]]}]},
+    y:["IvzKGD9ZuoY",0,0,0.562,"Hastings AnytimeFitness"]},
   p_foamlat:{n:"Foam roller: lateral del muslo", s:30, l:2, k:["Pie de arriba apoyado delante para dosificar","Suave: no tiene que doler mucho"],
-    f:[{h:[84,48],n:[76,54],p:[50,66],k1:[30,72],a1:[12,74],k2:[58,56],a2:[60,80],t2:[66,81],e1:[76,70],w1:[88,74],x:[["rodillo",38,77],["flecha",28,88,50,88]]}]},
+    y:["eI9qLfSlCuI",1,28,1.778,"Cleveland Clinic","hq3"]},
   e_gato:{n:"Gato-camello", s:40, l:1, k:["Redondea al exhalar, arquea al inhalar","Vértebra a vértebra, lento"],
-    f:[{h:[80,58],n:[72,54],c:[56,42],p:[40,54],k1:[40,80],a1:[22,80],e1:[72,66],w1:[72,80],x:[["flecha",56,36,56,30]]},
-       {h:[80,46],n:[72,52],c:[56,60],p:[40,52],k1:[40,80],a1:[22,80],e1:[72,66],w1:[72,80],x:[["flecha",56,66,56,72]]}]},
+    y:["oMDrs7dPtxI",0,0,0.562,"Yoga with Shvasa"]},
   e_libro:{n:"Libro abierto (columna torácica)", s:35, l:2, k:["Rodillas juntas y quietas","Sigue la mano con la mirada"],
-    f:[{h:[20,70],n:[30,73],p:[56,76],k1:[72,64],a1:[88,72],e1:[42,64],w1:[54,62],e2:[42,66],w2:[54,66],x:[]},
-       {h:[20,70],n:[30,73],p:[56,76],k1:[72,64],a1:[88,72],e1:[42,64],w1:[54,62],e2:[24,56],w2:[12,48],x:[["flecha",52,52,18,40],["foco",34,68]]}]},
+    y:["rxoWQUUVrus",0,0,0.562,"Code Chiro"]},
   e_foamtor:{n:"Foam roller: extensión de espalda alta", s:45, l:1, k:["Rodillo en la espalda alta, nunca en la lumbar","Manos en la nuca, codos juntos"],
-    f:[{h:[30,60],n:[38,63],p:[64,78],k1:[78,58],a1:[88,80],t1:[94,81],e1:[36,50],w1:[30,58],x:[["rodillo",42,74]]},
-       {h:[24,70],n:[35,66],p:[64,78],k1:[78,58],a1:[88,80],t1:[94,81],e1:[30,56],w1:[24,64],x:[["rodillo",42,74],["flecha",28,48,20,60],["foco",44,66]]}]},
+    y:["uWIJ3TJJwbQ",0,0,0.562,"Next Level Physical Therapy & Wellness"]},
   e_nino:{n:"Postura del niño con alcance lateral", s:35, l:2, k:["Glúteos hacia los talones","Manos hacia un lado: estira el dorsal contrario"],
-    f:[{h:[75,72],n:[67,69],p:[36,62],k1:[54,80],a1:[30,80],e1:[82,73],w1:[102,77],x:[["foco",54,62]]}]},
+    y:["imkIit0FnMU",0,0,0.562,"Liftin with Kristin"]},
   e_rodpecho:{n:"Rodillas al pecho", s:30, l:1, k:["Abraza las rodillas","Balanceo suave para soltar la lumbar"],
-    f:[{h:[20,74],n:[28,77],p:[54,78],k1:[54,58],a1:[70,62],e1:[40,68],w1:[54,62],x:[["foco",48,76]]}]},
+    y:["LugNxxfIdvo",4,34,1.778,"Baptist Health"]},
   h_pasos:{n:"Pasos de hombro con goma", s:40, l:1, k:["Brazos estirados, manos abiertas","Costillas abajo: no arquees la espalda"],
-    f:[{h:[50,20],n:[50,27],p:[50,52],k1:[45,66],a1:[43,80],k2:[55,66],a2:[57,80],e1:[38,38],w1:[32,50],e2:[62,38],w2:[68,50],x:[["goma",32,50,68,50],["texto",2,10,"de frente"]]},
-       {h:[50,20],n:[50,27],p:[50,52],k1:[45,66],a1:[43,80],k2:[55,66],a2:[57,80],e1:[40,14],w1:[34,3],e2:[60,14],w2:[66,3],x:[["goma",34,3,66,3],["flecha",80,50,80,10]]}]},
+    y:["l5I_E0_My5s",2,25,1.779,"HomeWODs"]},
   h_pec:{n:"Pectoral en el marco de la puerta", s:35, l:2, k:["Codo a la altura del hombro","Gira el pecho hacia fuera, suave"],
-    f:[{h:[50,20],n:[50,27],p:[50,52],k1:[52,66],a1:[52,80],t1:[58,81],k2:[60,66],a2:[62,80],t2:[68,81],e1:[72,27],w1:[72,12],x:[["poste",74],["foco",58,32]]}]},
-  h_dorsal:{n:"Dorsal en mesa o pared", s:35, l:1, k:["Brazos estirados, deja caer el pecho","Cadera atrás, rodillas un poco dobladas"],
-    f:[{h:[80,55],n:[74,50],p:[46,46],k1:[48,64],a1:[46,80],t1:[52,81],e1:[84,50],w1:[92,50],x:[["mesa",88,52],["foco",64,52]]}]},
+    y:["CEQMx4zFwYs",21,42,1.775,"MidwestOrtho","hq3"]},
+  h_dorsal:{n:"Dorsal de rodillas en banco o sofá", s:35, l:1, k:["Codos en el banco, manos juntas","Cadera atrás y deja caer el pecho"],
+    y:["QxNWOeYgnTo",0,0,1.779,"U.S. Forces Fitness"]},
   h_foamdor:{n:"Foam roller: dorsal", s:35, l:2, k:["Rodillo bajo la axila, brazo estirado","Rueda poco y gira el pecho"],
-    f:[{h:[76,62],n:[66,68],p:[38,74],k1:[22,70],a1:[8,76],e1:[82,72],w1:[98,74],x:[["rodillo",62,76],["flecha",54,88,70,88]]}]},
+    y:["ht2_L4wGH4w",4,31,1.778,"Climb Strong"]},
   r_90:{n:"Respiración con piernas en una silla", s:60, l:1, k:["Inhala 4\" por la nariz","Exhala lento 6-8\""],
-    f:[{h:[24,74],n:[32,78],p:[62,78],k1:[64,58],a1:[86,58],e1:[44,72],w1:[54,70],x:[["silla",72,60],["texto",8,30,"4\" ↑  6\" ↓"]]}]}
+    y:["xkXdMYHAICY",1,38,1.778,"The Active Life"]}
 };
-// Dibujo de un ejercicio: fotogramas en secuencia (inicio → final)
-function figura(P,ox){
-  const q=k=>P[k]?`${P[k][0]+ox},${P[k][1]}`:null, line=(ks,cls)=>{ const pts=ks.map(q).filter(Boolean); return pts.length>1?`<polyline class="${cls}" points="${pts.join(" ")}"/>`:""; };
-  let s=""; (P.x||[]).forEach(x=>{ const [t,a,b,c,d]=x;
-    if(t==="pared") s+=`<line class="prop" x1="${a+ox}" y1="4" x2="${a+ox}" y2="82"/>`;
-    if(t==="poste") s+=`<rect class="propf" x="${a+ox-2}" y="4" width="4" height="78" rx="1"/>`;
-    if(t==="rodillo") s+=`<circle class="roll" cx="${a+ox}" cy="${b}" r="6"/>`;
-    if(t==="goma") s+=`<line class="band" x1="${a+ox}" y1="${b}" x2="${c+ox}" y2="${d}"/>`;
-    if(t==="mesa") s+=`<path class="prop" d="M${a+ox-2} ${b}h${118-a}M${a+ox+4} ${b}v30"/>`;
-    if(t==="silla") s+=`<path class="prop" d="M${a+ox} ${b}h22v22M${a+ox} ${b}v22M${a+ox+22} ${b}v-24"/>`;
-    if(t==="texto") s+=`<text class="txt" x="${a+ox}" y="${b}">${c}</text>`; });
-  s+=line(["n","e2","w2"],"far")+line(["p","k2","a2","t2"],"far")+line(["n","c","p"],"body")+line(["p","k1","a1","t1"],"body")+line(["n","e1","w1"],"body");
-  if(P.h) s+=`<circle class="head" cx="${P.h[0]+ox}" cy="${P.h[1]}" r="5.5"/>`;
-  (P.x||[]).forEach(([t,a,b,c,d])=>{ if(t==="foco") s+=`<circle class="foco" cx="${a+ox}" cy="${b}" r="5"/>`;
-    if(t==="flecha") s+=`<line class="arr" x1="${a+ox}" y1="${b}" x2="${c+ox}" y2="${d}" marker-end="url(#pf)"/>`; });
-  return s;
+// Vídeos: miniatura (lista) y reproductor en bucle (lista y cronómetro) con la API oficial de YouTube
+const ytMini = y => `https://i.ytimg.com/vi/${y[0]}/${y[5]||"hq2"}.jpg`;   // hq2 = fotograma de mitad del vídeo
+let YTP=null;
+function ytListo(){ return YTP||(YTP=new Promise((ok,ko)=>{ if(window.YT&&YT.Player) return ok();
+  const prev=window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady=()=>{ prev&&prev(); ok(); };
+  const sc=document.createElement("script"); sc.src="https://www.youtube.com/iframe_api"; sc.onerror=()=>{ YTP=null; ko(); }; document.head.appendChild(sc); })); }
+// Reproductor en bucle: vidPlayer(caja, y, tapa) → {cargar(y), pausa(true/false), fin()}
+// tapa = atributo del velo que cubre el vídeo (así un toque no abre YouTube): en la lista lo cierra, en el cronómetro pausa
+function vidPlayer(caja, y, tapa){
+  const o={y, ok:false, pausado:false, cerrado:false}, div=document.createElement("div"); caja.innerHTML=`<button type="button" class="vtapa" ${tapa}></button>`; caja.prepend(div);
+  const ini=()=>o.y[1]||0, carga=()=>Object.assign({videoId:o.y[0], startSeconds:ini()}, o.y[2]?{endSeconds:o.y[2]}:{});
+  ytListo().then(()=>{ if(o.cerrado) return;
+    o.p=new YT.Player(div,{host:"https://www.youtube-nocookie.com", videoId:y[0], width:"100%", height:"100%",
+      playerVars:Object.assign({autoplay:1, mute:1, playsinline:1, controls:0, rel:0, modestbranding:1, iv_load_policy:3, disablekb:1, fs:0, start:y[1]||0, origin:location.origin}, y[2]?{end:y[2]}:{}),
+      events:{ onReady:e=>{ o.ok=true; e.target.mute(); if(o.y[0]!==y[0]) e.target.loadVideoById(carga()); if(o.pausado) e.target.pauseVideo(); else e.target.playVideo(); },
+               onStateChange:e=>{ if(e.data===0 && !o.pausado){ e.target.seekTo(ini(),true); e.target.playVideo(); } } }});
+    o.t=setInterval(()=>{ try{ if(o.ok && o.y[2] && o.p.getCurrentTime()>=o.y[2]-.3) o.p.seekTo(ini(),true); }catch(_){} },400);
+  }).catch(()=>{});
+  o.cargar=y2=>{ if(y2[0]===o.y[0]) return; o.y=y2; if(o.ok){ o.p.loadVideoById(carga()); if(o.pausado) o.p.pauseVideo(); } };
+  o.pausa=b=>{ o.pausado=b; try{ if(o.ok) b?o.p.pauseVideo():o.p.playVideo(); }catch(_){} };
+  o.fin=()=>{ o.cerrado=true; clearInterval(o.t); try{ o.p&&o.p.destroy(); }catch(_){} };
+  return o;
 }
-function dibujo(id){
-  const F=MOV[id].f||[], W=120*F.length+(F.length>1?16*(F.length-1):0);
-  return `<svg class="dib" viewBox="0 0 ${W} 92" role="img" aria-label="${esc(MOV[id].n)}"><defs><marker id="pf" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>
-    ${F.some(P=>(P.x||[]).some(x=>x[0]==="sinsuelo"))?"":`<line class="suelo" x1="0" y1="82.5" x2="${W}" y2="82.5"/>`}
-    ${F.map((P,j)=>figura(P,j*136)+(j<F.length-1?`<text class="num" x="${j*136+124}" y="48">›</text>`:"")+(F.length>1?`<text class="num s" x="${j*136+4}" y="11">${j+1}</text>`:"")).join("")}</svg>`;
-}
+// Miniatura recortada a 3:4 (las de YouTube traen bandas negras)
+function movMini(id){ const y=MOV[id].y, r=y[3], fw=r>=4/3?480:360*r, fh=r>=4/3?480/r:360, k=Math.max(84/fw,112/fh);
+  return `<button class="movth" data-movvid="${id}" aria-label="Ver vídeo: ${esc(MOV[id].n)}"><img loading="lazy" alt="" src="${ytMini(y)}" style="width:${Math.round(480*k)}px;height:${Math.round(360*k)}px"><span>▶</span></button>`; }
+// Caja de vídeo con la proporción de cada vídeo (los verticales no pasan de alto)
+function cajaVid(caja, id, alto){ const y=MOV[id].y; caja.style.aspectRatio=String(y[3]); caja.style.width=`min(100%, calc(${alto} * ${y[3]}))`; caja.style.backgroundImage=`url(${ytMini(y)})`; }
+let CARDV=null;   // vídeo abierto en la lista (uno cada vez)
+function movVerVid(id){ const caja=document.getElementById("mv-"+id); if(!caja) return;
+  const abierto=CARDV&&CARDV.id===id&&document.body.contains(CARDV.caja); if(CARDV){ CARDV.o.fin(); if(CARDV.caja){ CARDV.caja.innerHTML=""; CARDV.caja.classList.remove("on"); } } CARDV=null;
+  if(abierto) return;
+  caja.classList.add("on"); cajaVid(caja, id, "62vh"); CARDV={id, caja, o:vidPlayer(caja, MOV[id].y, `data-movvid="${id}" aria-label="Cerrar vídeo"`)};
+  setTimeout(()=>{ try{ caja.scrollIntoView({behavior:"smooth", block:"nearest"}); }catch(_){} }, 50); }
 // Bloques: fijo (cadera + tobillo) y uno por lo entrenado. Orden = prioridad (los primeros entran siempre).
 const MOV_FIJO=["t_goma","c_9090","t_pared","c_sent","c_flexor","t_alfabeto","c_9090i","c_cossack","c_rotint"];
 const MOV_FOCO={
@@ -1718,13 +1715,14 @@ function vMovilidad(){
     <button class="btn" style="margin-top:10px" data-movgo="1">▶️ Empezar con cronómetro · ${Math.round(F.seg/60)}'</button>
     <p class="muted small" style="margin:8px 0 0">${hechos?`✓ Hoy llevas <b>${mins}'</b> (${hechos} de ${F.ids.length} ejercicios)`:"Marca cada ejercicio al hacerlo, o usa el cronómetro y se marcan solos."} · Esta semana: <b>${semMin}'</b></p></div>
   ${F.ids.map(id=>{ const e=MOV[id], seg=e.l===2?`${e.s}" por lado`:`${e.s}"`;
-    return `<div class="card movej ${h[id]?"hecho":""}"><div class="row between" style="gap:10px">
-      <div style="flex:1"><b>${e.n}</b><div class="muted small">${seg}${e.l===2&&lado&&/^t_|^c_/.test(id)?` · ${lado==="der"?"derecho":"izquierdo"} +50 %`:""}</div></div>
+    return `<div class="card movej ${h[id]?"hecho":""}"><div class="movrow">${movMini(id)}
+      <div style="flex:1;min-width:0"><b>${e.n}</b><div class="muted small">${seg}${e.l===2&&lado&&/^t_|^c_/.test(id)?` · ${lado==="der"?"derecho":"izquierdo"} +50 %`:""}</div>
+        <ul class="claves">${e.k.map(x=>`<li>${x}</li>`).join("")}</ul></div>
       <button class="chk ${h[id]?"done":""}" data-movchk="${id}" aria-label="Hecho">${h[id]?"✓":""}</button></div>
-      ${dibujo(id)}
-      <ul class="claves">${e.k.map(x=>`<li>${x}</li>`).join("")}</ul></div>`; }).join("")}
+      <div class="movvid" id="mv-${id}"></div></div>`; }).join("")}
   ${vTestMov()}
-  <p class="muted small">Sin dolor: tensión agradable, nunca pinchazo. En el tobillo operado, rango cómodo y sin rebotes. Respira lento en cada postura.</p>`;
+  <p class="muted small">Toca la imagen para ver el vídeo. Sin dolor: tensión agradable, nunca pinchazo. En el tobillo operado, rango cómodo y sin rebotes. Respira lento en cada postura.</p>
+  <p class="muted small">🎥 Vídeos de YouTube de sus autores (fisios y entrenadores), se ven sin sonido y en bucle. Necesitan internet.</p>`;
 }
 // Test de movilidad (repetir cada 4 semanas)
 const TEST_MOV=[["kwD","Rodilla a la pared · derecho","cm","Distancia máxima del dedo gordo a la pared tocando con la rodilla, talón abajo."],
@@ -1749,6 +1747,8 @@ function beep(fr,ms){ try{ const c=MP.ctx||(MP.ctx=new (window.AudioContext||win
 function movStart(f,v){
   const F=flujoMov(f,v); MP={f, v, F, k:-1, left:5, pausa:false, prep:true};
   let el=document.getElementById("movplayer"); if(!el){ el=document.createElement("div"); el.id="movplayer"; document.body.appendChild(el); }
+  if(CARDV){ CARDV.o.fin(); CARDV=null; }
+  el.innerHTML=`<div class="mp-in"><div id="mptop"></div><div id="mpvid" class="mpvid"></div><div id="mpui"></div></div>`;
   try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(w=>MP.wl=w).catch(()=>{}); }catch(_){}
   beep(660,120); MP.t=setInterval(movTick,1000); movPaint();
 }
@@ -1760,27 +1760,29 @@ function movTick(){ if(!MP||MP.pausa) return; MP.left--;
   movPaint(); }
 function movMarcar(f,id,medio){ if(medio) return; const r=REG[f]||(REG[f]={fecha:f}); r.movilidad=r.movilidad||{hechos:{}};
   r.movilidad.hechos=r.movilidad.hechos||{}; r.movilidad.hechos[id]=true; r.movilidad.v=MP?MP.v:r.movilidad.v; r.movilidad.min=minMov(f); saveReg(f); }
-function movEnd(fin){ if(!MP) return; clearInterval(MP.t); try{ MP.wl&&MP.wl.release(); }catch(_){}
+function movEnd(fin){ if(!MP) return; clearInterval(MP.t); try{ MP.wl&&MP.wl.release(); }catch(_){} if(MP.yt) MP.yt.fin();
   const f=MP.f; MP=null; const el=document.getElementById("movplayer"); if(el) el.remove();
   render(); if(fin){ beep(990,400); toast(`¡Hecho! ${minMov(f)}' de movilidad`); } }
-function movPaint(){ const el=document.getElementById("movplayer"); if(!el||!MP) return;
-  const P=MP.F.pasos, p=MP.k>=0?P[MP.k]:null, sig=P[MP.k+1], e=p?MOV[p.id]:null, tot=p?p.s:5;
+function movPaint(){ const top=document.getElementById("mptop"), ui=document.getElementById("mpui"); if(!ui||!MP) return;
+  const P=MP.F.pasos, p=MP.k>=0?P[MP.k]:null, sig=P[MP.k+1], e=p?MOV[p.id]:null, tot=p?p.s:5, id=p?p.id:P[0].id;
   const hecho=P.slice(0,Math.max(0,MP.k)).reduce((a,x)=>a+x.s,0), pct=Math.round(hecho/MP.F.seg*100);
-  el.innerHTML=`<div class="mp-in"><div class="row between"><span class="muted small">${MP.k+1>0?MP.k+1:0} / ${P.length} · ${pct} %</span><button class="btn ghost small" data-mp="x">✕ Salir</button></div>
-    <div class="bar" style="margin:8px 0 18px"><i style="width:${pct}%"></i></div>
-    <div class="mp-z">${dibujo(e?p.id:P[0].id)}</div>
-    <h2 style="margin:6px 0 2px;text-align:center">${e?e.n:"Prepárate: "+MOV[P[0].id].n}</h2>
+  if(MP.vid!==id){ MP.vid=id; const caja=document.getElementById("mpvid"); cajaVid(caja, id, "46vh");
+    if(MP.yt) MP.yt.cargar(MOV[id].y); else MP.yt=vidPlayer(caja, MOV[id].y, `data-mp="p"`); }
+  top.innerHTML=`<div class="row between"><span class="muted small">${MP.k+1>0?MP.k+1:0} / ${P.length} · ${pct} %</span><button class="btn ghost small" data-mp="x">✕ Salir</button></div>
+    <div class="bar" style="margin:8px 0 12px"><i style="width:${pct}%"></i></div>`;
+  ui.innerHTML=`<div class="muted small" style="text-align:center;margin-top:4px">🎥 ${esc(MOV[id].y[4])}</div>
+    <h2 style="margin:6px 0 2px;text-align:center">${e?e.n:"Prepárate: "+MOV[id].n}</h2>
     <div class="muted" style="text-align:center">${p&&p.lado?"Lado "+p.lado:e?"":"Empezamos en…"}</div>
     <div class="mp-t">${MP.left}</div>
     <svg viewBox="0 0 100 6" class="mp-bar"><rect width="100" height="6" rx="3" fill="var(--line)"/><rect width="${Math.max(0,(tot-MP.left)/tot*100)}" height="6" rx="3" fill="var(--accent)"/></svg>
-    <ul class="claves" style="margin:14px 0">${(e||MOV[P[0].id]).k.map(x=>`<li>${x}</li>`).join("")}</ul>
-    <div class="muted small" style="text-align:center">${sig?`Siguiente: ${MOV[sig.id].n}${sig.lado?" · "+sig.lado:""}`:"Último ejercicio"}</div>
-    <div class="row" style="gap:8px;margin-top:16px"><button class="btn ghost" style="flex:1" data-mp="p">${MP.pausa?"▶️ Seguir":"⏸ Pausa"}</button><button class="btn ghost" style="flex:1" data-mp="s">⏭ Saltar</button></div></div>`;
+    <ul class="claves" style="margin:12px 0">${MOV[id].k.map(x=>`<li>${x}</li>`).join("")}</ul>
+    ${sig?`<div class="mp-sig"><img alt="" src="${ytMini(MOV[sig.id].y)}"><span class="muted small">Siguiente<br><b>${MOV[sig.id].n}</b>${sig.lado?" · "+sig.lado:""}</span></div>`:`<div class="muted small" style="text-align:center">Último ejercicio</div>`}
+    <div class="row" style="gap:8px;margin-top:14px"><button class="btn ghost" style="flex:1" data-mp="p">${MP.pausa?"▶️ Seguir":"⏸ Pausa"}</button><button class="btn ghost" style="flex:1" data-mp="s">⏭ Saltar</button></div>`;
 }
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-mp]"); if(!b||!MP) return;
   if(b.dataset.mp==="x") return movEnd(false);
-  if(b.dataset.mp==="p"){ MP.pausa=!MP.pausa; movPaint(); return; }
-  if(b.dataset.mp==="s"){ MP.left=1; MP.pausa=false; MP.skip=MP.k>=0; movTick(); } });
+  if(b.dataset.mp==="p"){ MP.pausa=!MP.pausa; if(MP.yt) MP.yt.pausa(MP.pausa); movPaint(); return; }
+  if(b.dataset.mp==="s"){ MP.left=1; if(MP.pausa&&MP.yt) MP.yt.pausa(false); MP.pausa=false; MP.skip=MP.k>=0; movTick(); } });
 
 document.getElementById("nav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
   UI.tab=b.dataset.tab; UI.mover=null; render(); window.scrollTo(0,0); });
@@ -1842,6 +1844,7 @@ app.addEventListener("click",async e=>{
   if(d.movdia!==undefined){ UI.dia=+d.movdia; render(); return; }
   if(d.movv){ UI.movV=+d.movv; render(); return; }
   if(d.movgo){ movStart(iso(fecha(i)), UI.movV||8); return; }
+  if(d.movvid){ movVerVid(d.movvid); return; }
   if(d.movchk){ const f=iso(fecha(i)), r=REG[f]||(REG[f]={fecha:f}); r.movilidad=r.movilidad||{}; const h=r.movilidad.hechos=r.movilidad.hechos||{};
     if(h[d.movchk]) delete h[d.movchk]; else h[d.movchk]=true; r.movilidad.v=UI.movV||8; r.movilidad.min=minMov(f); saveReg(f); render(); return; }
   if(d.irmov){ UI.tab="movilidad"; render(); window.scrollTo(0,0); return; }
